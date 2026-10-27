@@ -10,6 +10,9 @@ import {InteractionSystem} from '../systems/InteractionSystem.js';
 import {populateInteractables} from '../systems/Interactables.js';
 import {InventoryUI} from '../ui/InventoryUI.js';
 import {DocumentUI} from '../ui/DocumentUI.js';
+import {Monster} from '../ai/Monster.js';
+import {GameOverUI} from '../ui/GameOverUI.js';
+import {AIDebugUI} from '../ui/AIDebugUI.js';
 export class Game{
  constructor(root){
   this.running=false;this.elapsed=0;this.overlay=null;
@@ -27,7 +30,11 @@ export class Game{
   this.inventoryUI=new InventoryUI(root,()=>this.closeOverlay());
   this.documentUI=new DocumentUI(root,()=>this.closeOverlay());
   this.interactions=new InteractionSystem(this.camera,this.scene,this.player,this.inventory,t=>this.hud.message(t),doc=>this.openDocument(doc));
-  populateInteractables(this.hospital,this.interactions,this.player,this.inventory,t=>this.hud.message(t));
+  const worldItems=populateInteractables(this.hospital,this.interactions,this.player,this.inventory,t=>this.hud.message(t),(p,r)=>this.monster?.hearNoise(p,r));
+  this.monster=new Monster(this.scene,this.hospital.collision,this.player,worldItems.doors,{onAttack:()=>this.onCaught(),onState:(next)=>{if(next==='CHASE')this.hud.message('Você ouviu passos acelerando atrás de você...')}});
+  this.hideSpots=worldItems.hideSpots;
+  this.gameOverUI=new GameOverUI(root,()=>window.location.reload());
+  this.debugUI=new AIDebugUI(root);
   this.post=new PostProcessing(this.renderer,this.scene,this.camera);
   this.input.onLockChange=locked=>{
    this.running=locked;
@@ -39,6 +46,7 @@ export class Game{
   window.addEventListener('keydown',e=>{if(!this.overlay)return;if(['Escape','Tab','KeyE'].includes(e.code)){e.preventDefault();this.closeOverlay()}});
   this.clock=new THREE.Clock();this.renderer.setAnimationLoop(()=>this.update());
  }
+ onCaught(){this.overlay='gameover';this.running=false;this.hud.hide();this.menu.hide();this.gameOverUI.show();if(document.pointerLockElement)document.exitPointerLock()}
  openInventory(){this.overlay='inventory';this.inventoryUI.show(this.inventory.getAll());document.exitPointerLock()}
  openDocument(doc){this.overlay='document';this.documentUI.show(doc);document.exitPointerLock()}
  closeOverlay(){if(!this.overlay)return;this.overlay=null;this.inventoryUI.hide();this.documentUI.hide();this.input.clearPressed();this.input.lock()}
@@ -47,7 +55,11 @@ export class Game{
   if(this.running){
    this.elapsed+=dt;
    const status=this.player.update(dt);this.hospital.update(dt);
+   this.monster.update(dt,status,this.hideSpots);
+   if(this.input.pressed('F3'))this.debugUI.toggle();
+   this.debugUI.update(this.monster,this.player);
    let hint=this.player.hidden?'[E] Sair do esconderijo':this.interactions.update();
+   if(this.overlay==='gameover'){this.post.render(dt);return}
    if(this.input.pressed('KeyE')){
     if(this.player.hidden){this.player.emerge();this.hud.message('Você saiu do esconderijo.')}
     else this.interactions.interact()

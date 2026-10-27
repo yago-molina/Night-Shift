@@ -1,36 +1,41 @@
-# NIGHT SHIFT — Fase 3
+# NIGHT SHIFT — Fase 4
 
-Jogo FPS 3D de terror psicológico com Three.js e Vite. Todas as fases anteriores preservadas.
+FPS 3D de terror psicológico, construído com HTML, CSS, JavaScript, Three.js e Vite.
 
-## Instalar e executar
+## Instalação
 ```bash
 npm install
 npm run dev
 ```
-Abra o endereço do Vite no terminal (normalmente http://localhost:5173).
 
-## Controles
-- WASD: mover; mouse: olhar; Shift: correr; Ctrl: agachar
-- F: ligar/desligar lanterna; R: usar bateria reserva
-- E: interagir com portas, objetos, gavetas, documentos e esconderijos
-- Tab: abrir ou fechar inventário
-- Esc: sair do ponteiro travado, pausar ou fechar documento/inventário
+## Comandos
+- WASD / mouse: mover / olhar
+- Shift: correr; Ctrl: agachar
+- F: lanterna; R: bateria
+- E: interagir / entrar e sair de esconderijo
+- Tab: inventário; Esc: pausa e fechar documentos
+- **F3: painel de diagnóstico da IA**, mostrando estado, distância, caminho e ocultação do jogador
 
-## Fase 3
-- Interações em primeira pessoa com Raycaster e prompt na mira
-- 8 portas, incluindo a porta da segurança trancada até conseguir a chave
-- Gavetas que abrem/fecham
-- Chave, baterias de lanterna e inventário de 8 espaços
-- Consumo gradual de energia da lanterna e recarga com baterias coletadas
-- Três documentos narrativos legíveis
-- Armários onde o jogador pode se esconder e sair
-- HUD com prompts, bateria, mensagens e inventário
+## Fase 4 — Criatura e inteligência artificial
+- Monstro 3D procedural com aparência humanoide e animação de movimento
+- 20 segundos de tempo seguro após iniciar o turno
+- Patrulhamento por áreas do hospital; navegação A* que respeita paredes e móveis
+- Portas abertas automaticamente pela criatura ao percorrer corredores
+- Detecção por visão (cone e obstáculos) e audição de passos (correr é mais barulhento)
+- Investiga sons de portas/gavetas e a última posição conhecida do jogador
+- Procura esconderijos perto do último local onde observou o jogador
+- Suspeita crescente para armários investigados repetidamente
+- Captura e tela de derrota, com botão para recomeçar o turno
 
-## Observações
-Os esconderijos serão usados pela IA na Fase 4. O posicionamento do jogador é restaurado ao sair.
-Os modelos ainda são procedurais; os efeitos visuais da Fase 2 permanecem.
+A criatura não usa IA generativa externa: a lógica é local, determinística e baseada em regras.
+O período de segurança e os valores de velocidade são parâmetros em `src/ai/Monster.js`.
 
-## Compilar para produção
+## Testes
 ```bash
+npm test
 npm run build
 ```
+
+**Sugestão de verificação manual:** aguarde os 20 segundos iniciais, aproxime-se correndo da criatura e observe a perseguição. Depois, quebre a linha de visão e entre em um armário. Use F3 para acompanhar as mudanças de estado. Verifique também a abertura de portas pelo monstro.
+
+O estilo de iluminação e os materiais PBR da Fase 2 não foram alterados.

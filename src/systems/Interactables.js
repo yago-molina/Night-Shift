@@ -1,21 +1,26 @@
 import * as THREE from 'three';
 const cube=(parent,x,y,z,w,h,d,mat)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);o.position.set(x,y,z);parent.add(o);return o};
-export function populateInteractables(hospital,interaction,player,inventory,onMessage){
+export function populateInteractables(hospital,interaction,player,inventory,onMessage,onNoise=()=>{}){
  const {scene,m,collision}=hospital;
+ const result={doors:[],hideSpots:[]};
  const doors=[[-11,-2],[-3,-2],[5,-2],[12,-2],[-11,2],[-3,2],[5,2],[12,2]];
  for(const [x,z] of doors){
   const hinge=new THREE.Group();hinge.position.set(x-.78,0,z);scene.add(hinge);
   cube(hinge,.78,1.27,0,1.57,2.54,.08,m.wood);
   cube(hinge,1.37,1.1,.09,.13,.08,.08,m.metal);
-  let blocker=collision.add(x,z,1.6,.13);
+  let blocker=collision.add(x,z,1.6,.13,{door:true});
+  const position=new THREE.Vector3(x,0,z);
+  const door={position,get isOpen(){return open},openByMonster(){if(!open){hinge.rotation.y=-Math.PI/2;collision.remove(blocker);open=true;}}};
+  result.doors.push(door);
   let open=false;const locked=x===-3&&z===-2;
   interaction.register(hinge,{kind:'door',label:()=>locked&&!inventory.has('security-key')&&!open?'[E] Porta trancada • precisa da chave':'[E] '+(open?'Fechar porta':'Abrir porta'),action:()=>{
    if(locked&&!inventory.has('security-key')){onMessage('A porta da segurança está trancada. Procure a chave.');return}
    if(open){
     // Não fechar caso o jogador esteja atravessando o batente.
     if(Math.abs(player.position.x-x)<1&&Math.abs(player.position.z-z)<.6){onMessage('Afaste-se da porta para fechá-la.');return}
-    hinge.rotation.y=0;blocker=collision.add(x,z,1.6,.13);open=false;
-   }else{hinge.rotation.y=-Math.PI/2;collision.remove(blocker);open=true}
+    hinge.rotation.y=0;blocker=collision.add(x,z,1.6,.13,{door:true});open=false;
+   }else{door.openByMonster()}
+   onNoise(position,5);
   }});
  }
  function pickup(x,y,z,item,color){
@@ -39,7 +44,7 @@ export function populateInteractables(hospital,interaction,player,inventory,onMe
   const front=cube(frame,0,0,.3,.72,.3,.05,m.trim);
   cube(frame,0,0,.345,.18,.05,.045,m.metal);
   let opened=false;
-  interaction.register(frame,{kind:'drawer',label:()=> '[E] '+(opened?'Fechar':'Abrir')+' gaveta',action:()=>{opened=!opened;front.position.z=opened?.56:.3;onMessage(opened?'Gaveta aberta.':'Gaveta fechada.')}});
+  interaction.register(frame,{kind:'drawer',label:()=> '[E] '+(opened?'Fechar':'Abrir')+' gaveta',action:()=>{opened=!opened;front.position.z=opened?.56:.3;onMessage(opened?'Gaveta aberta.':'Gaveta fechada.');onNoise(frame.position,6)}});
  }
  // Gavetas posicionadas nas mesas; podem ser abertas e fechadas.
  drawer(-12,-8.95);drawer(12,-8.95);
@@ -55,13 +60,15 @@ export function populateInteractables(hospital,interaction,player,inventory,onMe
  }
  // Armários: esconderijo funcional, sem teleporte para o interior de colisões.
  for(const [x,z] of [[-5.7,-11.5],[-14,-11],[14,-11],[5,-11]]){
+  const id='cabinet:'+x+':'+z;result.hideSpots.push({id,position:new THREE.Vector3(x,0,z+.88)});
   const target=new THREE.Group();target.position.set(x,1.15,z+.3);scene.add(target);
   cube(target,0,0,0,.72,1.7,.08,m.trim);
   interaction.register(target,{kind:'hide',label:()=> '[E] Esconder-se no armário',action:()=>{
    if(player.hidden)return;
    const distance=Math.hypot(player.position.x-x,player.position.z-(z+.3));
    if(distance>1.7){onMessage('Aproxime-se do armário.');return}
-   player.hideAt(x,z+.88);onMessage('Você está escondido. Pressione E para sair.');
+   player.hideAt(x,z+.88,id);onMessage('Você está escondido. Pressione E para sair.');
   }});
  }
+ return result;
 }
