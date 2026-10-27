@@ -1,1 +1,14 @@
-import * as THREE from 'three';export function installLighting(scene){scene.background=new THREE.Color('#162027');scene.fog=new THREE.Fog('#162027',22,65);scene.add(new THREE.HemisphereLight(0xc8d7ed,0x25323b,1.1));for(let x=-12;x<=12;x+=8){let l=new THREE.PointLight(0xcce7ee,23,12,2);l.position.set(x,3.05,0);scene.add(l);let lamp=new THREE.Mesh(new THREE.BoxGeometry(1.3,.07,.4),new THREE.MeshBasicMaterial({color:0xdceff2}));lamp.position.copy(l.position);scene.add(lamp)}let office=new THREE.PointLight(0x9ed8c9,16,9);office.position.set(-3,3,-8);scene.add(office)}
+import * as THREE from 'three';
+export function installLighting(scene){
+ scene.background=new THREE.Color('#253036');scene.fog=new THREE.FogExp2(0x253036,.012);
+ scene.add(new THREE.HemisphereLight(0xc8e0ed,0x3c4447,1.65));
+ const ambient=new THREE.AmbientLight(0xb1c9d1,.35);scene.add(ambient);
+ const lights=[];
+ const add=(x,y,z,color=0xd5e9e8,intensity=12,distance=10)=>{
+  const l=new THREE.PointLight(color,intensity,distance,2);l.position.set(x,y,z);scene.add(l);lights.push(l);return l
+ };
+ for(let x=-12;x<=12;x+=8)add(x,3.12,0,0xdceef0,15,11);
+ for(const x of [-11,-3,5,12]){add(x,3.05,-8,0xb9e7e1,x===-3?15:9,10);add(x,3.05,8,0xd0e0d9,10,10)}
+ let time=0;
+ return {update(dt){time+=dt;const l=lights[5];if(l)l.intensity=(Math.sin(time*1.5)>0.997?3:9)}};
+}

@@ -1,31 +1,32 @@
-# NIGHT SHIFT — Fase 1
+# NIGHT SHIFT — Fase 2
 
-FPS 3D de terror psicológico em Three.js + Vite.
+FPS 3D de terror psicológico desenvolvido com **Three.js + Vite**.
 
 ## Executar
-
-Instale Node.js 20.19+ ou 22.12+ e execute:
-
+Instale Node.js compatível com Vite e execute:
 ```bash
 npm install
 npm run dev
 ```
-
-Abra a URL indicada no terminal (geralmente http://localhost:5173).
+Abra o endereço informado pelo terminal (normalmente http://localhost:5173).
 
 ## Controles
+WASD: mover; mouse: olhar; Shift: correr; Ctrl: agachar; F: lanterna; Esc: pausar.
 
-- WASD: mover
-- Mouse: olhar
-- Shift: correr (consome resistência)
-- Ctrl: agachar
-- F: lanterna
-- Esc: pausar
+## Fase 1 preservada
+Movimentação, gravidade, colisões, stamina, lanterna, menu, HUD e hospital explorável.
 
-## Fase 1
+## Fase 2 — gráficos e atmosfera
+- Texturas procedurais geradas em Canvas (sem downloads de assets externos).
+- Materiais PBR para piso, paredes, teto e móveis metálicos.
+- Mobiliário hospitalar mais detalhado: camas com estruturas e rodas, armários e carrinhos.
+- Luminárias fixadas ao teto e iluminação ambiental equilibrada.
+- Neblina leve, tela com granulação discreta e vinheta suave.
+- Pós-processamento desacoplado em `PostProcessing.js`.
 
-Hospital explorável com sala de segurança, recepção, enfermaria, cirurgia, administração, corredores, iluminação, colisões, gravidade, movimentação, menu e HUD. IA de criatura e missões ficam para as próximas fases.
+O visual utiliza geometria procedural. Modelos externos GLB/GLTF de alta fidelidade poderão ser introduzidos posteriormente.
 
-## Produção
-
-`npm run build` gera a pasta `dist/`.
+## Build
+```bash
+npm run build
+```
