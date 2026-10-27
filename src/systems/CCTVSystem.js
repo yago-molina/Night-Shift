@@ -5,42 +5,51 @@ const LOCATIONS=[
  {name:'ENFERMARIA',pos:[-14,2.75,11.8],look:[-11,1.2,7]},
  {name:'CENTRO CIRÚRGICO',pos:[7,2.75,11.8],look:[3,1.2,7]}
 ];
-export class CCTVSystem {
+export class CCTVSystem{
  constructor(scene,renderer,power){
-  this.scene=scene;this.renderer=renderer;this.power=power;this.cameras=[];this.targets=[];this.index=0;this.active=false;this.refreshTimer=0;this.refreshIndex=0;
+  this.scene=scene;this.renderer=renderer;this.power=power;this.cameras=[];this.targets=[];this.index=0;this.active=false;this.refreshTimer=0;this.refreshIndex=0;this.interval=.5;
   for(const location of LOCATIONS){
-   const camera=new THREE.PerspectiveCamera(70,16/9,.1,55);
-   camera.position.set(...location.pos);camera.lookAt(...location.look);
-   const target=new THREE.WebGLRenderTarget(384,216,{depthBuffer:true});
+   const camera=new THREE.PerspectiveCamera(70,16/9,.1,55);camera.position.set(...location.pos);camera.lookAt(...location.look);
+   const target=new THREE.WebGLRenderTarget(320,180,{depthBuffer:true});
    this.cameras.push({...location,camera});this.targets.push(target);
    const body=new THREE.Group();body.position.set(...location.pos);scene.add(body);
-   const shell=new THREE.Mesh(new THREE.BoxGeometry(.32,.2,.4),new THREE.MeshStandardMaterial({color:0x53676d,metalness:.65,roughness:.4}));body.add(shell);
-   const lens=new THREE.Mesh(new THREE.CylinderGeometry(.07,.07,.12,12),new THREE.MeshStandardMaterial({color:0x15242c,metalness:.5}));lens.rotation.x=Math.PI/2;lens.position.z=-.24;body.add(lens);
+   const material=new THREE.MeshStandardMaterial({color:0x53676d,metalness:.65,roughness:.4});
+   body.add(new THREE.Mesh(new THREE.BoxGeometry(.32,.2,.4),material));
+   const lens=new THREE.Mesh(new THREE.CylinderGeometry(.07,.07,.12,12),new THREE.MeshStandardMaterial({color:0x15242c,metalness:.5}));
+   lens.rotation.x=Math.PI/2;lens.position.z=-.24;body.add(lens);
   }
   this.monitorSurface=null;
  }
  attachMonitor(scene){
   const material=new THREE.MeshBasicMaterial({map:this.targets[0].texture,color:0xffffff,side:THREE.DoubleSide});
   const display=new THREE.Mesh(new THREE.PlaneGeometry(.65,.55),material);
-  // Monitor closest to the player's initial viewpoint (the center monitor)
-  display.position.set(-3,1.43,-9.188);
-  scene.add(display);this.monitorSurface=display;
+  display.position.set(-3,1.43,-9.188);scene.add(display);this.monitorSurface=display;
  }
- enter(){if(!this.power.enabled('cctv'))return false;this.active=true;return true}
+ configure(size=[320,180],interval=.5){
+  this.interval=interval;
+  for(const target of this.targets)target.setSize(size[0],size[1]);
+  this.refreshTimer=0;
+ }
+ enter(){if(!this.power.enabled('cctv'))return false;this.active=true;this.refreshTimer=0;return true}
  exit(){this.active=false}
- select(index){this.index=(index+this.cameras.length)%this.cameras.length;if(this.monitorSurface)this.monitorSurface.material.map=this.targets[this.index].texture}
+ select(index){this.index=(index+this.cameras.length)%this.cameras.length;this.refreshTimer=0;if(this.monitorSurface)this.monitorSurface.material.map=this.targets[this.index].texture}
  get current(){return this.cameras[this.index]}
- update(dt){
+ update(dt,monitorVisible=false){
   if(!this.power.enabled('cctv')){this.active=false;return}
-  this.refreshTimer-=dt;if(this.refreshTimer>0)return;this.refreshTimer=.35;
-  const i=this.refreshIndex++%this.cameras.length;
+  // One secondary render at a time; cameras only update while the terminal is in use.
+  if(!this.active&&!monitorVisible)return;
+  this.refreshTimer-=dt;if(this.refreshTimer>0)return;this.refreshTimer=this.interval;
+  const i=this.active?this.index:this.refreshIndex++%this.cameras.length;
   const previous=this.renderer.getRenderTarget();
-  // Hide the CCTV display while the secondary scene is rendered.
-  if(this.monitorSurface)this.monitorSurface.visible=false;
-  this.renderer.setRenderTarget(this.targets[i]);
-  this.renderer.render(this.scene,this.cameras[i].camera);
-  this.renderer.setRenderTarget(previous);
-  if(this.monitorSurface)this.monitorSurface.visible=true;
+  const wasVisible=this.monitorSurface?.visible;
+  try{
+   if(this.monitorSurface)this.monitorSurface.visible=false;
+   this.renderer.setRenderTarget(this.targets[i]);
+   this.renderer.render(this.scene,this.cameras[i].camera);
+  }finally{
+   this.renderer.setRenderTarget(previous);
+   if(this.monitorSurface)this.monitorSurface.visible=wasVisible;
+  }
  }
  dispose(){for(const target of this.targets)target.dispose()}
 }

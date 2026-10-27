@@ -1,6 +1,6 @@
 // Web Audio procedural horror soundscape. No downloads, external assets or autoplay.
 export class AudioSystem {
- constructor(){this.ctx=null;this.master=null;this.ambience=null;this.ambGain=null;this.ready=false;this.muted=false;this.volume=.42;this.lastHeartbeat=0;this.time=0;this.nextDrip=4}
+ constructor(){this.ctx=null;this.master=null;this.ambience=null;this.ambGain=null;this.ready=false;this.muted=false;this.volume=.42;this.lastHeartbeat=0;this.time=0;this.nextDrip=4;this.footTimer=0;this.noiseCache=new Map()}
  async start(){
   try{
    if(!this.ctx){const C=window.AudioContext||window.webkitAudioContext;if(!C)return;
@@ -13,7 +13,7 @@ export class AudioSystem {
    if(this.ctx.state==='suspended')await this.ctx.resume();this.ready=true;
   }catch(e){console.warn('Áudio indisponível:',e)}
  }
- noiseBuffer(duration=2){const b=this.ctx.createBuffer(1,Math.ceil(this.ctx.sampleRate*duration),this.ctx.sampleRate);const data=b.getChannelData(0);for(let i=0;i<data.length;i++)data[i]=Math.random()*2-1;return b}
+ noiseBuffer(duration=2){const key=Math.ceil(duration*10)/10;if(this.noiseCache.has(key))return this.noiseCache.get(key);const b=this.ctx.createBuffer(1,Math.ceil(this.ctx.sampleRate*key),this.ctx.sampleRate);const data=b.getChannelData(0);for(let i=0;i<data.length;i++)data[i]=Math.random()*2-1;this.noiseCache.set(key,b);return b}
  setVolume(n){this.volume=Math.max(0,Math.min(1,n));if(this.master)this.master.gain.setTargetAtTime(this.muted?0:this.volume,this.ctx.currentTime,.03)}
  setMuted(m){this.muted=m;this.setVolume(this.volume)}
  tone(freq=100,duration=.2,volume=.1,kind='sine',pan=0){
@@ -44,11 +44,13 @@ export class AudioSystem {
   else if(name==='door'){this.noise(.18,.095*s.gain,340,s.pan);this.tone(130,.28,.08*s.gain,'triangle',s.pan)}
   else if(name==='chase'){this.tone(62,.45,.11,'sawtooth');this.noise(.3,.08,90)}
   else if(name==='alarm'){this.tone(810,.45,.12,'square',s.pan);this.tone(620,.35,.08,'sawtooth',s.pan)}
+  else if(name==='step'){this.noise(.09,.018*s.gain,190,s.pan)}
   else if(name==='heartbeat'){this.tone(53,.19,.11,'sine');this.tone(67,.12,.06,'sine')}
  }
- update(dt,tension,player){
+ update(dt,tension,player,status){
   if(!this.ready||this.muted)return;
   this.time+=dt;
+  if(status?.moving&&!player.hidden){this.footTimer-=dt;if(this.footTimer<=0){this.footTimer=status.running?.3:status.crouch?.8:.46;this.effect('step')}}else this.footTimer=0;
   if(this.ambGain)this.ambGain.gain.setTargetAtTime(.12+.18*tension,this.ctx.currentTime,.4);
   const interval=1.25-.82*tension;
   if(tension>.48&&this.time-this.lastHeartbeat>interval){this.lastHeartbeat=this.time;this.effect('heartbeat')}

@@ -23,12 +23,14 @@ import {installSecurityInteractables} from '../systems/SecurityInteractables.js'
 import {MissionSystem} from '../systems/MissionSystem.js';
 import {SaveSystem} from '../systems/SaveSystem.js';
 import {EndingUI} from '../ui/EndingUI.js';
+import {GraphicsSettings} from './GraphicsSettings.js';
+import {PerformanceUI} from '../ui/PerformanceUI.js';
 export class Game{
  constructor(root){
-  this.running=false;this.elapsed=0;this.overlay=null;
+  this.running=false;this.elapsed=0;this.overlay=null;this.settings=new GraphicsSettings();
   this.scene=new THREE.Scene();this.camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,.08,95);
   this.renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
-  this.renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));this.renderer.setSize(innerWidth,innerHeight);
+  this.renderer.setPixelRatio(Math.min(devicePixelRatio,this.settings.preset.pixelRatio));this.renderer.setSize(innerWidth,innerHeight);
   this.renderer.outputColorSpace=THREE.SRGBColorSpace;this.renderer.toneMapping=THREE.ACESFilmicToneMapping;this.renderer.toneMappingExposure=1.75;
   root.append(this.renderer.domElement);
   this.input=new InputManager(this.renderer.domElement);
@@ -38,7 +40,8 @@ export class Game{
   this.hud=new HUD(root);
   this.audio=new AudioSystem();this.tension=new TensionSystem();
   this.menu=new Menu(root,()=>{this.audio.start();this.input.lock()});
-  this.menu.addSettings?.((volume)=>this.audio.setVolume(volume),(enabled)=>this.post?.setEffectsEnabled(enabled));
+  this.menu.addSettings(options=>this.applySettings(options),this.settings.options);
+  this.audio.setVolume(this.settings.options.volume/100);
   this.inventory=new InventorySystem();
   this.inventoryUI=new InventoryUI(root,()=>this.closeOverlay());
   this.documentUI=new DocumentUI(root,()=>this.closeOverlay());
@@ -54,6 +57,8 @@ export class Game{
   this.power=new PowerSystem();
   this.cctv=new CCTVSystem(this.scene,this.renderer,this.power);
   this.cctv.attachMonitor(this.scene);
+  this.performanceUI=new PerformanceUI(root);
+  this.applySettings(this.settings.options);
   this.securityUI=new SecurityUI(root);
   this.alarmPulse=0;
   installSecurityInteractables({hospital:this.hospital,interactions:this.interactions,power:this.power,cctv:this.cctv,player:this.player,
@@ -83,7 +88,7 @@ export class Game{
   this.debugUI.setExtra?.(()=>({tension:this.tension.value,event:this.director.lastEvent}));
   this.input.onLockChange=locked=>{
    this.running=locked;
-   if(locked){this.overlay=null;this.inventoryUI.hide();this.documentUI.hide();this.menu.hide();this.hud.show();this.audio.resume()}
+   if(locked){if(this.overlay==='ending')return;this.overlay=null;this.inventoryUI.hide();this.documentUI.hide();this.menu.hide();this.hud.show();this.audio.resume()}
    else if(this.overlay){this.menu.hide();this.hud.hide();this.securityUI.hide();this.cctv.exit();this.audio.pause()}
    else{this.hud.hide();this.securityUI.hide();this.cctv.exit();this.menu.show(this.elapsed>0);this.audio.pause()}
   };
@@ -127,7 +132,7 @@ export class Game{
   if(Array.isArray(data.inventory)){
    for(const item of data.inventory){if(this.inventory.has(item.id))continue;this.inventory.add(item)}
    for(const entry of [...this.interactions.entries]){
-    if(entry.kind==='pickup'&&this.inventory.has(entry.item.id)){entry.object.visible=false;this.interactions.entries=this.interactions.entries.filter(e=>e!==entry)}
+    if(entry.kind==='pickup'&&this.inventory.has(entry.item.id)){entry.object.visible=false;this.interactions.unregister(entry)}
    }
   }
   if(data.power){
@@ -144,6 +149,16 @@ export class Game{
   this.endingUI.show(end,this.saveSystem.hasCheckpoint());
   if(document.pointerLockElement)document.exitPointerLock();
  }
+ applySettings(options){
+  this.settings.setAll(options);
+  this.renderer.setPixelRatio(Math.min(devicePixelRatio,this.settings.preset.pixelRatio));
+  this.renderer.setSize(innerWidth,innerHeight);
+  this.post.resize(innerWidth,innerHeight);
+  this.post.setEffectsEnabled(this.settings.preset.effects);
+  this.cctv.configure(this.settings.preset.cctvSize,this.settings.preset.cctvInterval);
+  this.audio.setVolume(this.settings.options.volume/100);
+  this.input.sensitivity=this.settings.options.mouseSensitivity/100;
+ }
  onCaught(){this.audio.effect('chase');this.finishShift('caught')}
  openInventory(){this.overlay='inventory';this.inventoryUI.show(this.inventory.getAll());document.exitPointerLock()}
  openDocument(doc){this.overlay='document';this.documentUI.show(doc);document.exitPointerLock()}
@@ -157,7 +172,7 @@ export class Game{
    this.hospital.lighting.setPower(this.power.enabled('lights'));
    this.hospital.update(dt);
    this.power.update(dt,{cctvActive:viewing});
-   this.cctv.update(dt);
+   this.cctv.update(dt,Math.hypot(this.player.position.x+3,this.player.position.z+9.3)<3.5);
    if(viewing&&!this.cctv.active)this.exitCCTV();
    this.monster.update(dt,status,this.hideSpots);
    if(this.missions.finished){this.post.render(dt);return}
@@ -167,7 +182,7 @@ export class Game{
    if(this.missions.minutes>=420){this.finishShift('dawn');this.post.render(dt);return}
    if(this.debugUI.enabled&&this.input.pressed('F4')){this.missions.elapsed=Math.min(390*6,this.missions.elapsed+60*6);this.hud.message('TESTE: relógio avançado 1 hora.')}
    const stress=this.tension.update(dt,this.monster,this.player);
-   this.audio.update(dt,stress,this.player);
+   this.audio.update(dt,stress,this.player,status);
    this.director.update(dt,stress);
    this.post.setTension(stress);
    this.hud.setTension?.(stress);
@@ -176,6 +191,7 @@ export class Game{
      if(this.alarmPulse<=0){this.alarmPulse=.9;this.audio.effect('alarm',{x:-3,z:-9.2},this.player.position)}
    }else this.alarmPulse=0;
    if(this.input.pressed('F3'))this.debugUI.toggle();
+   if(this.input.pressed('F2'))this.performanceUI.toggle();
    this.debugUI.update(this.monster,this.player);
    if(this.cctv.active){
      for(let i=0;i<4;i++)if(this.input.pressed('Digit'+(i+1)))this.cctv.select(i);
@@ -204,6 +220,7 @@ export class Game{
    this.hud.update(this.elapsed,status,hint,this.player.battery,this.inventory.count('battery'),dt);
    this.hud.setPower?.(this.power.status);
    this.hud.setClock(this.missions.clock);
+   this.performanceUI.update(dt,this.renderer);
   }else this.input.clearPressed();
   this.post.render(dt);
  }
