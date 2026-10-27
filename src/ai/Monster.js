@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {AIState,StateMachine} from './StateMachine.js';
 import {Navigation} from './Navigation.js';
+import {createCreatureModel} from '../models/CreatureModel.js';
 const V=(x,z)=>new THREE.Vector3(x,0,z);
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 export class Monster{
@@ -15,25 +16,31 @@ export class Monster{
   this.buildModel();
  }
  buildModel(){
-  const root=new THREE.Group();this.model=root;this.scene.add(root);
-  const skin=new THREE.MeshStandardMaterial({color:0x394044,roughness:.94});
-  const coat=new THREE.MeshStandardMaterial({color:0x202b30,roughness:1});
-  const eye=new THREE.MeshStandardMaterial({color:0xc25746,emissive:0xc52c19,emissiveIntensity:1.7});
-  const make=(parent,r,h,y,material,x=0,z=0)=>{
-   const mesh=new THREE.Mesh(new THREE.CylinderGeometry(r*.78,r,h,9),material);
-   mesh.position.set(x,y,z);parent.add(mesh);return mesh;
-  };
-  make(root,.39,1.42,1.25,coat);
-  make(root,.19,.43,2.12,skin);
-  const head=new THREE.Mesh(new THREE.SphereGeometry(.24,10,8),skin);head.scale.set(.9,1.2,.83);head.position.y=2.43;root.add(head);
-  for(const side of [-1,1]){
-   const arm=make(root,.095,1.18,1.26,skin,side*.48);arm.rotation.z=side*.16;
-   const leg=make(root,.14,1.13,.51,coat,side*.2);this['leg'+side]=leg;
-   const e=new THREE.Mesh(new THREE.SphereGeometry(.048,8,6),eye);e.position.set(side*.09,2.46,-.206);root.add(e);
-  }
-  this.shadow=new THREE.Mesh(new THREE.CircleGeometry(.48,16),new THREE.MeshBasicMaterial({color:0x090c0e,transparent:true,opacity:.35,depthWrite:false}));this.shadow.rotation.x=-Math.PI/2;this.shadow.position.y=.012;root.add(this.shadow);
-  this.model.position.copy(this.position);
+  const asset=createCreatureModel();this.creatureAsset=asset;this.model=asset.root;
+  this.scene.add(this.model);this.model.position.copy(this.position);
  }
+ isOnPlannedRoute(door){
+  if(door.isOpen)return false;
+  if(door.secure&&this.state!==AIState.CHASE)return false;
+  const near=dist(this.position,door.position);
+  if(near>1.55||!this.path.length)return false;
+  // A door opens only when the NEXT route segments actually pass through its frame.
+  let previous=this.position;
+  for(const node of this.path.slice(0,12)){
+   if(dist(this.position,node)>3.25)break;
+   const a=previous.z-door.position.z,b=node.z-door.position.z;
+   const crossing=(a<=0&&b>=0)||(a>=0&&b<=0);
+   if(crossing&&Math.min(Math.abs(a),Math.abs(b))<1.15){
+    const denominator=Math.abs(node.z-previous.z);
+    const k=denominator<.001?0:Math.abs(a)/denominator;
+    const crossingX=previous.x+(node.x-previous.x)*k;
+    if(Math.abs(crossingX-door.position.x)<.76)return true;
+   }
+   previous=node;
+  }
+  return false;
+ }
+
  get state(){return this.machine.state}
  setState(s){this.machine.set(s);this.path=[];this.pathTime=0;if(s===AIState.SEARCH){this.searchTime=0;this.scanTime=0}}
  remember(pos){this.lastKnown=V(pos.x,pos.z)}
@@ -67,7 +74,7 @@ export class Monster{
   return this.path[0]||point;
  }
  moveToward(point,speed,dt){
-  for(const door of this.doors){if(!door.isOpen&&dist(this.position,door.position)<1.8)door.openByMonster()}
+  for(const door of this.doors){if(this.isOnPlannedRoute(door))door.openByMonster()}
   const d=dist(this.position,point);if(d<.08)return;
   const dx=(point.x-this.position.x)/d,dz=(point.z-this.position.z)/d;
   const step=Math.min(speed*dt,d);
@@ -121,7 +128,7 @@ export class Monster{
   }
   this.model.position.copy(this.position);
   this.model.position.y=Math.abs(Math.sin(this.step))*.023;
-  this['leg-1'].rotation.x=Math.sin(this.step)*.14;this['leg1'].rotation.x=-Math.sin(this.step)*.14;
+  this.creatureAsset.animate(this.step);
  }
  reset(){this.position.copy(this.home);this.model.position.copy(this.home);this.active=false;this.elapsed=0;this.lastKnown=null;this.setState(AIState.PATROL)}
 }

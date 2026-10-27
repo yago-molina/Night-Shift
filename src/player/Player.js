@@ -8,7 +8,7 @@ export class Player{
  emerge(){if(!this.hidden)return;this.hidden=false;this.hidingId=null;if(this.hiddenPos){this.position.copy(this.hiddenPos);this.hiddenPos=null}}
  update(dt){
  const [mx,my]=this.input.consumeMouse();this.yaw-=mx*.0022;this.pitch=Math.max(-1.45,Math.min(1.45,this.pitch-my*.0022));this.camera.rotation.order='YXZ';this.camera.rotation.set(this.pitch,this.yaw,0);
- const crouch=this.hidden||this.input.down('ControlLeft')||this.input.down('ControlRight');
+ const crouch=this.hidden||this.input.down('ControlLeft')||this.input.down('ControlRight')||this.input.down('KeyC');
  const moveX=this.hidden?0:Number(this.input.down('KeyD'))-Number(this.input.down('KeyA'));
  const moveZ=this.hidden?0:Number(this.input.down('KeyS'))-Number(this.input.down('KeyW'));
  const moving=!!(moveX||moveZ),running=moving&&!crouch&&(this.input.down('ShiftLeft')||this.input.down('ShiftRight'))&&this.stamina>1;
