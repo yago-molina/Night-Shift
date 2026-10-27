@@ -51,7 +51,8 @@ export function populateInteractables(hospital,interaction,player,inventory,onMe
  const docs=[
   {x:-3.8,z:-9.25,title:'Registro de ocorrência — 22:47',body:'O plantão anterior informou movimentação no corredor cirúrgico. Nenhum paciente consta no sistema. A chave da sala de segurança permanece sobre a mesa.'},
   {x:-11.8,z:-8.9,title:'Relatório de manutenção',body:'As luzes do bloco sul oscilam desde o fechamento do hospital. A equipe recomenda desligar os circuitos, mas o disjuntor principal permanece inacessível.'},
-  {x:11.5,z:-8.9,title:'Memorando interno — Acesso restrito',body:'Funcionários estão proibidos de permanecer após as 23h. Se ouvir passos no corredor vazio, retorne imediatamente à sala de segurança.'}
+  {x:11.5,z:-8.9,title:'Memorando interno — Acesso restrito',body:'Funcionários estão proibidos de permanecer após as 23h. Se ouvir passos no corredor vazio, retorne imediatamente à sala de segurança.'},
+  {x:4.7,z:8.1,title:'Prontuário 013 — Relatório cirúrgico',body:'Documento confidencial. O paciente 013 nunca recebeu alta. As câmeras registraram uma transferência às 02:17, porém nenhum funcionário estava presente. Esta é a prova que faltava.'}
  ];
  for(const d of docs){
   const g=new THREE.Group();g.position.set(d.x,.985,d.z);scene.add(g);

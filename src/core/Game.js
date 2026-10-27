@@ -20,6 +20,9 @@ import {PowerSystem} from '../systems/PowerSystem.js';
 import {CCTVSystem} from '../systems/CCTVSystem.js';
 import {SecurityUI} from '../ui/SecurityUI.js';
 import {installSecurityInteractables} from '../systems/SecurityInteractables.js';
+import {MissionSystem} from '../systems/MissionSystem.js';
+import {SaveSystem} from '../systems/SaveSystem.js';
+import {EndingUI} from '../ui/EndingUI.js';
 export class Game{
  constructor(root){
   this.running=false;this.elapsed=0;this.overlay=null;
@@ -54,13 +57,29 @@ export class Game{
   this.securityUI=new SecurityUI(root);
   this.alarmPulse=0;
   installSecurityInteractables({hospital:this.hospital,interactions:this.interactions,power:this.power,cctv:this.cctv,player:this.player,
-    onCCTV:()=>this.enterCCTV(),onMessage:t=>this.hud.message(t),onAlarm:()=>{
+    onCCTV:()=>{this.missions?.action('cctv');this.enterCCTV()},onMessage:t=>this.hud.message(t),onAlarm:()=>{
       const pos={x:-3,z:-9.2};this.monster.hearNoise(pos,45);this.audio.effect('alarm',pos,this.player.position);
     }});
 
   this.director=new HorrorDirector({audio:this.audio,lighting:this.hospital.lighting,post:this.post,monster:this.monster,player:this.player,onEvent:(kind,pos)=>{
     if(kind==='bang')this.monster.hearNoise(pos,7);
   }});
+  this.saveSystem=new SaveSystem();
+  this.missions=new MissionSystem({
+   onMission:(objective)=>{this.hud.setMission(objective);this.hud.message('OBJETIVO ATUALIZADO: '+objective.title)},
+   onEvent:(event)=>this.storyEvent(event),
+   onCheckpoint:(reason)=>this.saveCheckpoint(reason)
+  });
+  this.interactions.onAction=(kind,data)=>{
+   if(kind==='pickup'&&data.id==='security-key')this.missions.action('key');
+   if(kind==='document'&&data.title.startsWith('Registro de ocorrência'))this.missions.action('incident');
+   if(kind==='document'&&data.title.startsWith('Prontuário 013'))this.missions.action('evidence');
+  };
+  this.registerExtractionTerminal();
+  this.endingUI=new EndingUI(root,{onRestart:()=>{this.saveSystem.clear();window.location.reload()},onContinue:()=>window.location.reload()});
+  this.menu.setCheckpointControls(this.saveSystem.hasCheckpoint(),()=>{this.saveSystem.clear();window.location.reload()});
+  this.restoreCheckpoint();
+  this.hud.setMission(this.missions.objective);
   this.debugUI.setExtra?.(()=>({tension:this.tension.value,event:this.director.lastEvent}));
   this.input.onLockChange=locked=>{
    this.running=locked;
@@ -74,7 +93,58 @@ export class Game{
  }
  enterCCTV(){if(!this.cctv.enter())return;this.securityUI.show();this.hud.hide();this.input.clearPressed()}
  exitCCTV(){this.cctv.exit();this.securityUI.hide();this.hud.show();this.input.clearPressed()}
- onCaught(){this.exitCCTV();this.audio.effect('chase');this.audio.pause();this.overlay='gameover';this.running=false;this.hud.hide();this.menu.hide();this.gameOverUI.show();if(document.pointerLockElement)document.exitPointerLock()}
+ storyEvent(event){
+  this.hud.message(event.title+' — '+event.body);
+  if(event.minute===180)this.hospital.lighting.flickerNearest(this.player.position,3);
+  if(event.minute===240)this.post.pulse(.65);
+  if(event.minute===390)this.audio.effect('radio',null,null);
+ }
+ registerExtractionTerminal(){
+  const THREE_MESH=new THREE.Mesh(new THREE.BoxGeometry(.48,.3,.15),this.hospital.m.screen);
+  THREE_MESH.position.set(.76,1.45,-5.5);this.scene.add(THREE_MESH);
+  this.interactions.register(THREE_MESH,{
+   label:()=>this.missions.canExtract()?'[E] Encerrar turno e sair do hospital':'[E] Terminal de saída — liberado às 05:30',
+   action:()=>{
+    if(!this.missions.canExtract()){this.hud.message(this.missions.stage<5?'Conclua os objetivos antes de sair.':'A saída só será liberada às 05:30.');return}
+    this.finishShift('terminal');
+   }
+  });
+ }
+ saveCheckpoint(reason){
+  if(!this.missions||this.missions.finished)return;
+  const data={version:1,missions:this.missions.snapshot(),player:{x:this.player.position.x,z:this.player.position.z,battery:this.player.battery,stamina:this.player.stamina},inventory:this.inventory.getAll(),power:{energy:this.power.energy,outage:this.power.outage,circuits:{...this.power.circuits}},reason};
+  this.saveSystem.save(data);
+ }
+ restoreCheckpoint(){
+  const data=this.saveSystem.load();if(!data||!this.missions.restore(data.missions))return;
+  this.elapsed=this.missions.elapsed;
+  if(data.player){
+   const {x,z}=data.player;
+   if(Number.isFinite(x)&&Number.isFinite(z)&&!this.hospital.collision.blocked(x,z))this.player.position.set(x,0,z);
+   if(Number.isFinite(data.player.battery))this.player.battery=Math.max(0,Math.min(100,data.player.battery));
+   if(Number.isFinite(data.player.stamina))this.player.stamina=Math.max(0,Math.min(100,data.player.stamina));
+  }
+  if(Array.isArray(data.inventory)){
+   for(const item of data.inventory){if(this.inventory.has(item.id))continue;this.inventory.add(item)}
+   for(const entry of [...this.interactions.entries]){
+    if(entry.kind==='pickup'&&this.inventory.has(entry.item.id)){entry.object.visible=false;this.interactions.entries=this.interactions.entries.filter(e=>e!==entry)}
+   }
+  }
+  if(data.power){
+   this.power.energy=Math.max(0,Math.min(this.power.capacity,Number(data.power.energy)||0));
+   this.power.outage=Boolean(data.power.outage)||this.power.energy===0;
+   this.power.circuits={...this.power.circuits,...data.power.circuits};
+  }
+  this.monster.reset();this.hud.message('Checkpoint restaurado: '+this.missions.clock);
+ }
+ finishShift(reason){
+  if(this.missions.finished)return;
+  const end=this.missions.complete(reason);
+  this.running=false;this.overlay='ending';this.cctv.exit();this.securityUI.hide();this.hud.hide();this.menu.hide();this.audio.pause();
+  this.endingUI.show(end,this.saveSystem.hasCheckpoint());
+  if(document.pointerLockElement)document.exitPointerLock();
+ }
+ onCaught(){this.audio.effect('chase');this.finishShift('caught')}
  openInventory(){this.overlay='inventory';this.inventoryUI.show(this.inventory.getAll());document.exitPointerLock()}
  openDocument(doc){this.overlay='document';this.documentUI.show(doc);document.exitPointerLock()}
  closeOverlay(){if(!this.overlay)return;this.overlay=null;this.inventoryUI.hide();this.documentUI.hide();this.input.clearPressed();this.input.lock()}
@@ -90,6 +160,12 @@ export class Game{
    this.cctv.update(dt);
    if(viewing&&!this.cctv.active)this.exitCCTV();
    this.monster.update(dt,status,this.hideSpots);
+   if(this.missions.finished){this.post.render(dt);return}
+   const atSecurity=this.player.position.x>-6.8&&this.player.position.x<.8&&this.player.position.z< -2.3&&this.player.position.z> -12.7;
+   this.missions.update(dt,{atSecurity});
+   this.elapsed=this.missions.elapsed;
+   if(this.missions.minutes>=420){this.finishShift('dawn');this.post.render(dt);return}
+   if(this.debugUI.enabled&&this.input.pressed('F4')){this.missions.elapsed=Math.min(390*6,this.missions.elapsed+60*6);this.hud.message('TESTE: relógio avançado 1 hora.')}
    const stress=this.tension.update(dt,this.monster,this.player);
    this.audio.update(dt,stress,this.player);
    this.director.update(dt,stress);
@@ -127,6 +203,7 @@ export class Game{
    if(this.input.pressed('Tab'))this.openInventory();
    this.hud.update(this.elapsed,status,hint,this.player.battery,this.inventory.count('battery'),dt);
    this.hud.setPower?.(this.power.status);
+   this.hud.setClock(this.missions.clock);
   }else this.input.clearPressed();
   this.post.render(dt);
  }
