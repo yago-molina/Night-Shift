@@ -14,7 +14,7 @@ try{
   await sleep(300);
  }
  assert.ok(online,'Servidor Vite não iniciou.');
- browser=await chromium.launch({headless:true,args:['--use-angle=swiftshader','--enable-webgl','--disable-web-security']});
+ browser=await chromium.launch({headless:true,...(process.env.CHROME_PATH?{executablePath:process.env.CHROME_PATH}:{}),args:['--use-angle=swiftshader','--enable-webgl','--disable-web-security']});
  const page=await browser.newPage({viewport:{width:1280,height:720}});
  page.on('pageerror',error=>errors.push(error.message));
  await page.goto('http://127.0.0.1:'+port,{waitUntil:'networkidle'});

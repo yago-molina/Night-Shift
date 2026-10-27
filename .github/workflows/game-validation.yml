@@ -15,7 +15,15 @@ jobs:
       - run: npm install
       - run: npm test
       - run: npm run build
-      - run: npx playwright install chromium --with-deps
+      - name: Preparar navegador
+        run: |
+          if command -v google-chrome >/dev/null 2>&1; then
+            echo "CHROME_PATH=$(command -v google-chrome)" >> "$GITHUB_ENV"
+          elif command -v chromium >/dev/null 2>&1; then
+            echo "CHROME_PATH=$(command -v chromium)" >> "$GITHUB_ENV"
+          else
+            npx playwright install chromium --with-deps
+          fi
       - run: npm run test:browser
       - if: always()
         uses: actions/upload-artifact@v4
