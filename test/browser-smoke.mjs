@@ -22,7 +22,10 @@ try{
  assert.ok(await page.locator('#play').isVisible(),'Menu inicial ausente');
  await page.locator('#play').click();
  await page.waitForFunction(()=>document.pointerLockElement===document.querySelector('canvas'),{timeout:6000}).catch(()=>{});
- assert.ok(await page.locator('#hud').isVisible(),'HUD não apareceu após iniciar turno.');
+ await page.screenshot({path:'browser-smoke.png'});
+ const diag=await page.evaluate(()=>({locked:document.pointerLockElement===document.querySelector('canvas'),hud:document.querySelector('#hud')?.style.display,menu:document.querySelector('#menu')?.style.display,body:document.body.innerText.slice(0,180)}));
+ console.log('START DIAGNOSTIC',JSON.stringify({diag,errors}));
+ assert.ok(await page.locator('#hud').isVisible(),'HUD não apareceu após iniciar turno. '+JSON.stringify({diag,errors}));
  await page.keyboard.down('w');await sleep(400);await page.keyboard.up('w');
  await page.keyboard.press('c');await page.keyboard.press('f');
  await page.keyboard.press('F2');
