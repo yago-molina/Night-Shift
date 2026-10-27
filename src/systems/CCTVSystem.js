@@ -7,7 +7,7 @@ const LOCATIONS=[
 ];
 export class CCTVSystem {
  constructor(scene,renderer,power){
-  this.scene=scene;this.renderer=renderer;this.power=power;this.cameras=[];this.targets=[];this.index=0;this.active=false;this.refreshTimer=0;this.refreshIndex=0;
+  this.scene=scene;this.renderer=renderer;this.power=power;this.cameras=[];this.targets=[];this.index=0;this.active=false;this.refreshTimer=0;this.refreshIndex=0;this.interval=.5;
   for(const location of LOCATIONS){
    const camera=new THREE.PerspectiveCamera(70,16/9,.1,55);
    camera.position.set(...location.pos);camera.lookAt(...location.look);
@@ -26,14 +26,16 @@ export class CCTVSystem {
   display.position.set(-3,1.43,-9.188);
   scene.add(display);this.monitorSurface=display;
  }
- enter(){if(!this.power.enabled('cctv'))return false;this.active=true;return true}
+ configure(size=[320,180],interval=.5){this.interval=interval;for(const target of this.targets)target.setSize(...size);this.refreshTimer=0}
+ enter(){if(!this.power.enabled('cctv'))return false;this.active=true;this.refreshTimer=0;return true}
  exit(){this.active=false}
- select(index){this.index=(index+this.cameras.length)%this.cameras.length;if(this.monitorSurface)this.monitorSurface.material.map=this.targets[this.index].texture}
+ select(index){this.index=(index+this.cameras.length)%this.cameras.length;this.refreshTimer=0;if(this.monitorSurface)this.monitorSurface.material.map=this.targets[this.index].texture}
  get current(){return this.cameras[this.index]}
- update(dt){
+ update(dt,monitorVisible=false){
   if(!this.power.enabled('cctv')){this.active=false;return}
-  this.refreshTimer-=dt;if(this.refreshTimer>0)return;this.refreshTimer=.35;
-  const i=this.refreshIndex++%this.cameras.length;
+  if(!this.active&&!monitorVisible)return;
+  this.refreshTimer-=dt;if(this.refreshTimer>0)return;this.refreshTimer=this.interval;
+  const i=this.active?this.index:this.refreshIndex++%this.cameras.length;
   const previous=this.renderer.getRenderTarget();
   // Hide the CCTV display while the secondary scene is rendered.
   if(this.monitorSurface)this.monitorSurface.visible=false;
