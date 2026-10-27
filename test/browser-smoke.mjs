@@ -16,7 +16,7 @@ try{
  assert.ok(online,'Servidor Vite não iniciou.');
  browser=await chromium.launch({headless:true,...(process.env.CHROME_PATH?{executablePath:process.env.CHROME_PATH}:{}),args:['--use-angle=swiftshader','--enable-webgl','--disable-web-security']});
  const page=await browser.newPage({viewport:{width:1280,height:720}});
- page.on('pageerror',error=>errors.push(error.message));
+ page.on('pageerror',error=>errors.push(error.stack||error.message));
  await page.goto('http://127.0.0.1:'+port,{waitUntil:'networkidle'});
  assert.equal(await page.locator('canvas').count(),1,'Canvas WebGL ausente');
  assert.ok(await page.locator('#play').isVisible(),'Menu inicial ausente');
