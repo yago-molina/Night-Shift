@@ -10,7 +10,7 @@ export function installLighting(scene){
  };
  for(let x=-12;x<=12;x+=8)add(x,3.12,0,0xdceef0,15,11);
  for(const x of [-11,-3,5,12]){add(x,3.05,-8,0xb9e7e1,x===-3?15:9,10);add(x,3.05,8,0xd0e0d9,10,10)}
- let time=0;const flashing=new Map();
+ let time=0;const flashing=new Map();let circuitOn=true;
  return {
   update(dt){time+=dt;
    for(const l of lights){let multiplier=1;
@@ -20,9 +20,10 @@ export function installLighting(scene){
      multiplier*=Math.max(.38,Math.min(1,.76+flicker*.2));
      if(f.remaining<=0)flashing.delete(l);
     }
-    l.intensity=l.userData.baseIntensity*multiplier;
+    l.intensity=l.userData.baseIntensity*multiplier*(circuitOn?1:.055);
    }
   },
+  setPower(on){circuitOn=Boolean(on)},
   flickerNearest(pos,duration=2.5){
    let best=null,dist=Infinity;
    for(const l of lights){const d=Math.hypot(pos.x-l.position.x,pos.z-l.position.z);if(d<dist){dist=d;best=l}}

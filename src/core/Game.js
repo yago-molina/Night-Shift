@@ -16,6 +16,10 @@ import {AIDebugUI} from '../ui/AIDebugUI.js';
 import {AudioSystem} from '../systems/AudioSystem.js';
 import {TensionSystem} from '../systems/TensionSystem.js';
 import {HorrorDirector} from '../systems/HorrorDirector.js';
+import {PowerSystem} from '../systems/PowerSystem.js';
+import {CCTVSystem} from '../systems/CCTVSystem.js';
+import {SecurityUI} from '../ui/SecurityUI.js';
+import {installSecurityInteractables} from '../systems/SecurityInteractables.js';
 export class Game{
  constructor(root){
   this.running=false;this.elapsed=0;this.overlay=null;
@@ -44,6 +48,16 @@ export class Game{
   this.gameOverUI=new GameOverUI(root,()=>window.location.reload());
   this.debugUI=new AIDebugUI(root);
   this.post=new PostProcessing(this.renderer,this.scene,this.camera);
+  this.power=new PowerSystem();
+  this.cctv=new CCTVSystem(this.scene,this.renderer,this.power);
+  this.cctv.attachMonitor(this.scene);
+  this.securityUI=new SecurityUI(root);
+  this.alarmPulse=0;
+  installSecurityInteractables({hospital:this.hospital,interactions:this.interactions,power:this.power,cctv:this.cctv,player:this.player,
+    onCCTV:()=>this.enterCCTV(),onMessage:t=>this.hud.message(t),onAlarm:()=>{
+      const pos={x:-3,z:-9.2};this.monster.hearNoise(pos,45);this.audio.effect('alarm',pos,this.player.position);
+    }});
+
   this.director=new HorrorDirector({audio:this.audio,lighting:this.hospital.lighting,post:this.post,monster:this.monster,player:this.player,onEvent:(kind,pos)=>{
     if(kind==='bang')this.monster.hearNoise(pos,7);
   }});
@@ -51,14 +65,16 @@ export class Game{
   this.input.onLockChange=locked=>{
    this.running=locked;
    if(locked){this.overlay=null;this.inventoryUI.hide();this.documentUI.hide();this.menu.hide();this.hud.show();this.audio.resume()}
-   else if(this.overlay){this.menu.hide();this.hud.hide();this.audio.pause()}
-   else{this.hud.hide();this.menu.show(this.elapsed>0);this.audio.pause()}
+   else if(this.overlay){this.menu.hide();this.hud.hide();this.securityUI.hide();this.cctv.exit();this.audio.pause()}
+   else{this.hud.hide();this.securityUI.hide();this.cctv.exit();this.menu.show(this.elapsed>0);this.audio.pause()}
   };
   window.addEventListener('resize',()=>{this.camera.aspect=innerWidth/innerHeight;this.camera.updateProjectionMatrix();this.renderer.setSize(innerWidth,innerHeight);this.post.resize(innerWidth,innerHeight)});
   window.addEventListener('keydown',e=>{if(!this.overlay)return;if(['Escape','Tab','KeyE'].includes(e.code)){e.preventDefault();this.closeOverlay()}});
   this.clock=new THREE.Clock();this.renderer.setAnimationLoop(()=>this.update());
  }
- onCaught(){this.audio.effect('chase');this.audio.pause();this.overlay='gameover';this.running=false;this.hud.hide();this.menu.hide();this.gameOverUI.show();if(document.pointerLockElement)document.exitPointerLock()}
+ enterCCTV(){if(!this.cctv.enter())return;this.securityUI.show();this.hud.hide();this.input.clearPressed()}
+ exitCCTV(){this.cctv.exit();this.securityUI.hide();this.hud.show();this.input.clearPressed()}
+ onCaught(){this.exitCCTV();this.audio.effect('chase');this.audio.pause();this.overlay='gameover';this.running=false;this.hud.hide();this.menu.hide();this.gameOverUI.show();if(document.pointerLockElement)document.exitPointerLock()}
  openInventory(){this.overlay='inventory';this.inventoryUI.show(this.inventory.getAll());document.exitPointerLock()}
  openDocument(doc){this.overlay='document';this.documentUI.show(doc);document.exitPointerLock()}
  closeOverlay(){if(!this.overlay)return;this.overlay=null;this.inventoryUI.hide();this.documentUI.hide();this.input.clearPressed();this.input.lock()}
@@ -66,15 +82,37 @@ export class Game{
   const dt=Math.min(this.clock.getDelta(),.05);
   if(this.running){
    this.elapsed+=dt;
-   const status=this.player.update(dt);this.hospital.update(dt);
+   const viewing=this.cctv.active;
+   const status=viewing?{running:false,crouch:false,moving:false,stamina:this.player.stamina}:this.player.update(dt);
+   this.hospital.lighting.setPower(this.power.enabled('lights'));
+   this.hospital.update(dt);
+   this.power.update(dt,{cctvActive:viewing});
+   this.cctv.update(dt);
+   if(viewing&&!this.cctv.active)this.exitCCTV();
    this.monster.update(dt,status,this.hideSpots);
    const stress=this.tension.update(dt,this.monster,this.player);
    this.audio.update(dt,stress,this.player);
    this.director.update(dt,stress);
    this.post.setTension(stress);
    this.hud.setTension?.(stress);
+   if(this.power.alarmRemaining>0){
+     this.alarmPulse-=dt;
+     if(this.alarmPulse<=0){this.alarmPulse=.9;this.audio.effect('alarm',{x:-3,z:-9.2},this.player.position)}
+   }else this.alarmPulse=0;
    if(this.input.pressed('F3'))this.debugUI.toggle();
    this.debugUI.update(this.monster,this.player);
+   if(this.cctv.active){
+     for(let i=0;i<4;i++)if(this.input.pressed('Digit'+(i+1)))this.cctv.select(i);
+     if(this.input.pressed('ArrowLeft'))this.cctv.select(this.cctv.index-1);
+     if(this.input.pressed('ArrowRight'))this.cctv.select(this.cctv.index+1);
+     this.securityUI.update(this.cctv,this.power);
+     if(this.input.pressed('KeyE'))this.exitCCTV();
+     this.input.clearPressed();
+     this.post.composer.passes[0].camera=this.cctv.active?this.cctv.current.camera:this.camera;
+     this.post.render(dt);
+     return;
+   }
+   this.post.composer.passes[0].camera=this.camera;
    let hint=this.player.hidden?'[E] Sair do esconderijo':this.interactions.update();
    if(this.overlay==='gameover'){this.post.render(dt);return}
    if(this.input.pressed('KeyE')){
@@ -88,6 +126,7 @@ export class Game{
    }
    if(this.input.pressed('Tab'))this.openInventory();
    this.hud.update(this.elapsed,status,hint,this.player.battery,this.inventory.count('battery'),dt);
+   this.hud.setPower?.(this.power.status);
   }else this.input.clearPressed();
   this.post.render(dt);
  }

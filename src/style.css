@@ -4,3 +4,14 @@
 /* Phase 5: restrained danger feedback; never blacks out the scene */
 #tension-vignette{position:fixed;inset:0;pointer-events:none;opacity:0;background:radial-gradient(ellipse at center,transparent 47%,rgba(89,8,13,.55) 100%);transition:opacity .3s;z-index:0}
 .audio-controls{display:flex;flex-wrap:wrap;align-items:center;gap:18px;margin-top:20px;color:#a9bdc1;font-size:11px;letter-spacing:.1em}.audio-controls label{display:flex;align-items:center;gap:10px}.audio-controls input[type=range]{width:116px;accent-color:#94d5c8}.audio-controls input[type=checkbox]{accent-color:#94d5c8}
+
+/* Phase 6 — security monitoring */
+#power-status{position:fixed;top:67px;left:30px;font:10px/1.5 monospace;letter-spacing:.12em;color:#a0cbbb;pointer-events:none}
+#security-ui{display:none;position:fixed;inset:0;pointer-events:none;z-index:2;border:clamp(12px,2vw,26px) solid rgba(6,18,23,.88);box-shadow:inset 0 0 90px rgba(1,15,18,.55);font-family:monospace;color:#b7e8dc}
+#security-ui:before{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,transparent 0px,transparent 3px,rgba(2,12,16,.12) 4px);opacity:.6}
+.cctv-head{position:absolute;top:18px;left:24px;right:24px;display:flex;justify-content:space-between;gap:12px;font-size:clamp(11px,1.25vw,16px);letter-spacing:.1em;text-shadow:0 1px 5px #000}
+.cctv-indicator{position:absolute;top:65px;left:24px;font-size:12px;letter-spacing:.16em;text-shadow:0 1px 5px #000}
+.record-dot{color:#fa6a65;animation:recordblink 1s step-end infinite}
+@keyframes recordblink{50%{opacity:.25}}
+.cctv-footer{position:absolute;bottom:20px;left:24px;right:24px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:12px;letter-spacing:.09em;text-shadow:0 2px 5px #000}
+@media(max-width:650px){.cctv-head,.cctv-footer{font-size:10px}}

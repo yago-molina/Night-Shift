@@ -1,39 +1,42 @@
-# NIGHT SHIFT — Fase 5
+# NIGHT SHIFT — Fase 6
 
-Jogo FPS 3D de terror psicológico desenvolvido com **Three.js, JavaScript e Vite**. As Fases 1 a 4 continuam presentes.
+Survival horror FPS em Three.js + Vite. Fases 1–5 preservadas.
 
-## Como iniciar
+## Executar
 ```bash
 npm install
 npm run dev
 ```
-Abra a URL apresentada no terminal, geralmente http://localhost:5173.
-
-## Fase 5: terror dinâmico
-- `AudioSystem.js`: ambiência procedural de baixa frequência, sons de batidas, metal, rádio, sussurros, goteiras e batimentos cardíacos conforme o perigo. Sem arquivos de som externos. Uso de Web Audio API após clique do jogador.
-- `TensionSystem.js`: nível de tensão suavizado pela proximidade da criatura e pelo estado da IA. Redução gradual ao se afastar.
-- `HorrorDirector.js`: eventos de susto espaçados, sem repetir o anterior e sem interromper perseguições.
-- `Lighting.js`: luminárias piscam temporariamente na área próxima ao jogador; a iluminação geral permanece equilibrada.
-- `PostProcessing.js`: ruído, vinheta e interferência ajustados discretamente com a tensão, sem escurecimento extremo.
-- Menu: slider de volume e opção para desligar efeitos visuais de pós-processamento.
-- HUD: indicação visual discreta do perigo.
-- F3: diagnóstico da IA e do sistema de tensão.
-
-## Controles
-WASD: mover | mouse: olhar | Shift: correr | Ctrl: agachar | F: lanterna | R: bateria | E: interagir | Tab: inventário | Esc: pausa | F3: depuração
-
-## Testes
+Para testes e build:
 ```bash
 npm test
 npm run build
 ```
 
-O áudio pode ser bloqueado até o primeiro clique em **Iniciar turno**, e depende de suporte a Web Audio. O volume pode ser regulado no menu.
+## Novo: sistema de segurança
+- Quatro câmeras CCTV reais em Three.js: corredor, recepção, enfermaria e centro cirúrgico.
+- Monitor na sala de segurança para abrir o CCTV com **E**.
+- Troque de câmera com **1–4** ou **setas esquerda/direita**; **E** fecha a visualização.
+- Enquanto olha as câmeras, o jogador fica parado no mundo e a criatura continua circulando. Não é um modo seguro.
+- Renderização secundária com alvos de baixa resolução, em rodízio, para diminuir o custo de GPU.
+- Sistema de energia e circuitos independentes: luzes, câmeras e alarme.
+- Painel elétrico na parede esquerda da sala de segurança, próximo ao armário.
+- Disjuntor/gerador pode ser rearmado e recarregado. O consumo depende dos sistemas ligados.
+- Botão de alarme na mesa da segurança. O som serve como distração e atrai a criatura para o local.
+- Interações mantêm a mira e a tecla **E** da Fase 3.
+- A iluminação ambiente nunca apaga completamente: desligar a iluminação remove as luminárias elétricas, mantendo uma luz ambiente mínima.
 
-## Testes manuais recomendados
-1. Inicie o turno: ouça ambiência leve e eventuais goteiras.
-2. Aguarde os primeiros eventos aleatórios sem se aproximar da criatura.
-3. Corra perto dela; observe os batimentos, a tensão e a vinheta.
-4. Perca a linha de visão; o nível de tensão deve diminuir gradualmente.
-5. Pressione F3 para ver o valor da tensão e o último evento.
-6. Pause; confirme que o áudio pausa. Desabilite efeitos visuais para comparar.
+## Controles
+WASD + mouse: explorar | Shift: correr | Ctrl: agachar | E: interagir | F: lanterna | R: bateria | Tab: inventário | F3: depuração.
+CCTV: **1–4**, **← / →**, **E** para sair.
+
+## Teste manual recomendado
+1. Abra a câmera central na sala de segurança. Alterne entre as quatro posições.
+2. Confira o monstro transitando pelos locais durante o monitoramento.
+3. Feche as câmeras, desligue o circuito CCTV no painel e confirme que as imagens ficam indisponíveis.
+4. Desligue a iluminação e confira se ainda é possível navegar.
+5. Acione o alarme e observe a reação da IA. Teste o tempo de recarga.
+6. Consuma energia até o corte e rearme o gerador.
+7. Teste pausa, interações e áudio das fases anteriores.
+
+A publicação não substitui um teste visual e de desempenho no navegador real.

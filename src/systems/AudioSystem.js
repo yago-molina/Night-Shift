@@ -43,6 +43,7 @@ export class AudioSystem {
   else if(name==='drip'){this.tone(760,.12,.032*s.gain,'sine',s.pan)}
   else if(name==='door'){this.noise(.18,.095*s.gain,340,s.pan);this.tone(130,.28,.08*s.gain,'triangle',s.pan)}
   else if(name==='chase'){this.tone(62,.45,.11,'sawtooth');this.noise(.3,.08,90)}
+  else if(name==='alarm'){this.tone(810,.45,.12,'square',s.pan);this.tone(620,.35,.08,'sawtooth',s.pan)}
   else if(name==='heartbeat'){this.tone(53,.19,.11,'sine');this.tone(67,.12,.06,'sine')}
  }
  update(dt,tension,player){
