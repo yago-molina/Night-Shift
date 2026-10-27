@@ -29,7 +29,7 @@ try{
  await page.keyboard.down('w');await sleep(400);await page.keyboard.up('w');
  await page.keyboard.press('c');await page.keyboard.press('f');
  await page.keyboard.press('F2');
- assert.ok(await page.locator('#performance-ui').isVisible(),'Diagnóstico de FPS ausente');
+ await page.locator('#performance-ui').waitFor({state:'visible',timeout:5000});
  assert.equal(errors.length,0,'Erros JavaScript no browser: '+errors.join(' | '));
  console.log('BROWSER SMOKE PASS: canvas, menu, input, HUD, F2 e sem exceções.');
  await page.screenshot({path:'browser-smoke.png'});
