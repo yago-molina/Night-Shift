@@ -1,34 +1,26 @@
-# NIGHT SHIFT — Fase 4
+# NIGHT SHIFT — Fase 5
 
-FPS 3D de terror psicológico, construído com HTML, CSS, JavaScript, Three.js e Vite.
+Jogo FPS 3D de terror psicológico desenvolvido com **Three.js, JavaScript e Vite**. As Fases 1 a 4 continuam presentes.
 
-## Instalação
+## Como iniciar
 ```bash
 npm install
 npm run dev
 ```
+Abra a URL apresentada no terminal, geralmente http://localhost:5173.
 
-## Comandos
-- WASD / mouse: mover / olhar
-- Shift: correr; Ctrl: agachar
-- F: lanterna; R: bateria
-- E: interagir / entrar e sair de esconderijo
-- Tab: inventário; Esc: pausa e fechar documentos
-- **F3: painel de diagnóstico da IA**, mostrando estado, distância, caminho e ocultação do jogador
+## Fase 5: terror dinâmico
+- `AudioSystem.js`: ambiência procedural de baixa frequência, sons de batidas, metal, rádio, sussurros, goteiras e batimentos cardíacos conforme o perigo. Sem arquivos de som externos. Uso de Web Audio API após clique do jogador.
+- `TensionSystem.js`: nível de tensão suavizado pela proximidade da criatura e pelo estado da IA. Redução gradual ao se afastar.
+- `HorrorDirector.js`: eventos de susto espaçados, sem repetir o anterior e sem interromper perseguições.
+- `Lighting.js`: luminárias piscam temporariamente na área próxima ao jogador; a iluminação geral permanece equilibrada.
+- `PostProcessing.js`: ruído, vinheta e interferência ajustados discretamente com a tensão, sem escurecimento extremo.
+- Menu: slider de volume e opção para desligar efeitos visuais de pós-processamento.
+- HUD: indicação visual discreta do perigo.
+- F3: diagnóstico da IA e do sistema de tensão.
 
-## Fase 4 — Criatura e inteligência artificial
-- Monstro 3D procedural com aparência humanoide e animação de movimento
-- 20 segundos de tempo seguro após iniciar o turno
-- Patrulhamento por áreas do hospital; navegação A* que respeita paredes e móveis
-- Portas abertas automaticamente pela criatura ao percorrer corredores
-- Detecção por visão (cone e obstáculos) e audição de passos (correr é mais barulhento)
-- Investiga sons de portas/gavetas e a última posição conhecida do jogador
-- Procura esconderijos perto do último local onde observou o jogador
-- Suspeita crescente para armários investigados repetidamente
-- Captura e tela de derrota, com botão para recomeçar o turno
-
-A criatura não usa IA generativa externa: a lógica é local, determinística e baseada em regras.
-O período de segurança e os valores de velocidade são parâmetros em `src/ai/Monster.js`.
+## Controles
+WASD: mover | mouse: olhar | Shift: correr | Ctrl: agachar | F: lanterna | R: bateria | E: interagir | Tab: inventário | Esc: pausa | F3: depuração
 
 ## Testes
 ```bash
@@ -36,6 +28,12 @@ npm test
 npm run build
 ```
 
-**Sugestão de verificação manual:** aguarde os 20 segundos iniciais, aproxime-se correndo da criatura e observe a perseguição. Depois, quebre a linha de visão e entre em um armário. Use F3 para acompanhar as mudanças de estado. Verifique também a abertura de portas pelo monstro.
+O áudio pode ser bloqueado até o primeiro clique em **Iniciar turno**, e depende de suporte a Web Audio. O volume pode ser regulado no menu.
 
-O estilo de iluminação e os materiais PBR da Fase 2 não foram alterados.
+## Testes manuais recomendados
+1. Inicie o turno: ouça ambiência leve e eventuais goteiras.
+2. Aguarde os primeiros eventos aleatórios sem se aproximar da criatura.
+3. Corra perto dela; observe os batimentos, a tensão e a vinheta.
+4. Perca a linha de visão; o nível de tensão deve diminuir gradualmente.
+5. Pressione F3 para ver o valor da tensão e o último evento.
+6. Pause; confirme que o áudio pausa. Desabilite efeitos visuais para comparar.

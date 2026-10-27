@@ -13,6 +13,9 @@ import {DocumentUI} from '../ui/DocumentUI.js';
 import {Monster} from '../ai/Monster.js';
 import {GameOverUI} from '../ui/GameOverUI.js';
 import {AIDebugUI} from '../ui/AIDebugUI.js';
+import {AudioSystem} from '../systems/AudioSystem.js';
+import {TensionSystem} from '../systems/TensionSystem.js';
+import {HorrorDirector} from '../systems/HorrorDirector.js';
 export class Game{
  constructor(root){
   this.running=false;this.elapsed=0;this.overlay=null;
@@ -25,28 +28,37 @@ export class Game{
   this.hospital=new Hospital(this.scene);this.scene.add(this.camera);
   this.player=new Player(this.camera,this.input,this.hospital.collision);
   this.player.flashlight.intensity=42;this.player.flashlight.distance=19;
-  this.hud=new HUD(root);this.menu=new Menu(root,()=>this.input.lock());
+  this.hud=new HUD(root);
+  this.audio=new AudioSystem();this.tension=new TensionSystem();
+  this.menu=new Menu(root,()=>{this.audio.start();this.input.lock()});
+  this.menu.addSettings?.((volume)=>this.audio.setVolume(volume),(enabled)=>this.post?.setEffectsEnabled(enabled));
   this.inventory=new InventorySystem();
   this.inventoryUI=new InventoryUI(root,()=>this.closeOverlay());
   this.documentUI=new DocumentUI(root,()=>this.closeOverlay());
   this.interactions=new InteractionSystem(this.camera,this.scene,this.player,this.inventory,t=>this.hud.message(t),doc=>this.openDocument(doc));
-  const worldItems=populateInteractables(this.hospital,this.interactions,this.player,this.inventory,t=>this.hud.message(t),(p,r)=>this.monster?.hearNoise(p,r));
+  const worldItems=populateInteractables(this.hospital,this.interactions,this.player,this.inventory,t=>this.hud.message(t),(p,r)=>{
+    this.monster?.hearNoise(p,r);this.audio.effect('door',p,this.player.position)
+  });
   this.monster=new Monster(this.scene,this.hospital.collision,this.player,worldItems.doors,{onAttack:()=>this.onCaught(),onState:(next)=>{if(next==='CHASE')this.hud.message('Você ouviu passos acelerando atrás de você...')}});
   this.hideSpots=worldItems.hideSpots;
   this.gameOverUI=new GameOverUI(root,()=>window.location.reload());
   this.debugUI=new AIDebugUI(root);
   this.post=new PostProcessing(this.renderer,this.scene,this.camera);
+  this.director=new HorrorDirector({audio:this.audio,lighting:this.hospital.lighting,post:this.post,monster:this.monster,player:this.player,onEvent:(kind,pos)=>{
+    if(kind==='bang')this.monster.hearNoise(pos,7);
+  }});
+  this.debugUI.setExtra?.(()=>({tension:this.tension.value,event:this.director.lastEvent}));
   this.input.onLockChange=locked=>{
    this.running=locked;
-   if(locked){this.overlay=null;this.inventoryUI.hide();this.documentUI.hide();this.menu.hide();this.hud.show()}
-   else if(this.overlay){this.menu.hide();this.hud.hide()}
-   else{this.hud.hide();this.menu.show(this.elapsed>0)}
+   if(locked){this.overlay=null;this.inventoryUI.hide();this.documentUI.hide();this.menu.hide();this.hud.show();this.audio.resume()}
+   else if(this.overlay){this.menu.hide();this.hud.hide();this.audio.pause()}
+   else{this.hud.hide();this.menu.show(this.elapsed>0);this.audio.pause()}
   };
   window.addEventListener('resize',()=>{this.camera.aspect=innerWidth/innerHeight;this.camera.updateProjectionMatrix();this.renderer.setSize(innerWidth,innerHeight);this.post.resize(innerWidth,innerHeight)});
   window.addEventListener('keydown',e=>{if(!this.overlay)return;if(['Escape','Tab','KeyE'].includes(e.code)){e.preventDefault();this.closeOverlay()}});
   this.clock=new THREE.Clock();this.renderer.setAnimationLoop(()=>this.update());
  }
- onCaught(){this.overlay='gameover';this.running=false;this.hud.hide();this.menu.hide();this.gameOverUI.show();if(document.pointerLockElement)document.exitPointerLock()}
+ onCaught(){this.audio.effect('chase');this.audio.pause();this.overlay='gameover';this.running=false;this.hud.hide();this.menu.hide();this.gameOverUI.show();if(document.pointerLockElement)document.exitPointerLock()}
  openInventory(){this.overlay='inventory';this.inventoryUI.show(this.inventory.getAll());document.exitPointerLock()}
  openDocument(doc){this.overlay='document';this.documentUI.show(doc);document.exitPointerLock()}
  closeOverlay(){if(!this.overlay)return;this.overlay=null;this.inventoryUI.hide();this.documentUI.hide();this.input.clearPressed();this.input.lock()}
@@ -56,6 +68,11 @@ export class Game{
    this.elapsed+=dt;
    const status=this.player.update(dt);this.hospital.update(dt);
    this.monster.update(dt,status,this.hideSpots);
+   const stress=this.tension.update(dt,this.monster,this.player);
+   this.audio.update(dt,stress,this.player);
+   this.director.update(dt,stress);
+   this.post.setTension(stress);
+   this.hud.setTension?.(stress);
    if(this.input.pressed('F3'))this.debugUI.toggle();
    this.debugUI.update(this.monster,this.player);
    let hint=this.player.hidden?'[E] Sair do esconderijo':this.interactions.update();
