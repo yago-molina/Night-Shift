@@ -14,7 +14,7 @@ export class Monster{
   this.patrol=[V(13,9),V(12,0),V(5,0),V(-3,0),V(-11,0),V(-11,9),V(-3,9),V(5,9),V(13,9)];
   this.patrolIndex=0;this.step=0;this.elapsed=0;this.grace=20;this.active=false;
   this.hearingCooldown=0;this.securityCooldown=0;this.searchTime=0;this.recoveryTime=0;
-  this.aggression=0;this.baseAggression=0;this.hidingPressure=0;this.progressMinutes=0;this.progressStage=0;this.securityRaid=false;
+  this.aggression=0;this.nightAnger=0;this.baseAggression=0;this.hidingPressure=0;this.progressMinutes=0;this.progressStage=0;this.securityRaid=false;
   this.buildModel();
  }
  buildModel(){
@@ -48,8 +48,9 @@ export class Monster{
   this.baseAggression=Math.min(1,this.progressMinutes/420*.65+this.progressStage/8*.35);
   this.applyAggression();
  }
+ setNightAnger(level){this.nightAnger=Math.max(0,Math.min(4,Number(level)||0));this.applyAggression()}
  setHidingPressure(pressure){this.hidingPressure=Math.max(0,Math.min(1,Number(pressure)||0));this.applyAggression()}
- applyAggression(){this.aggression=Math.min(1,this.baseAggression+this.hidingPressure*.26)}
+ applyAggression(){this.aggression=Math.min(1,this.baseAggression*.74+this.hidingPressure*.22+this.nightAnger*.105)}
  get hearingRadii(){return {walk:3.4+this.aggression*1.8,run:6.2+this.aggression*2.8,crouch:1.05+this.aggression*.5}}
  get chaseSpeed(){return 3.45+this.aggression*.85}
  inSecurity(p){return p.x>-6.65&&p.x<.65&&p.z< -2.2&&p.z> -12.9}

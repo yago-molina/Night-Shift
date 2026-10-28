@@ -34,6 +34,7 @@ export class Menu{
   this.node.querySelector('#volume-value').textContent=values.volume+'%';
   this.node.querySelector('#sensitivity-value').textContent=values.mouseSensitivity+'%';
  }
+ setNight(night,title){this.node.querySelector('.eyebrow').textContent='PROTOCOLO VIGÍLIA // NOITE '+night+' DE 5';this.node.querySelector('.menu-panel p').textContent=title+' — 23:00 às 06:00. Cada plantão revela um novo segredo.'}
  show(resume=false){
   this.node.style.display='grid';
   this.node.querySelector('#play').firstChild.textContent=resume?'RETOMAR TURNO ':this.hasSave?'CONTINUAR TURNO ':'INICIAR TURNO ';

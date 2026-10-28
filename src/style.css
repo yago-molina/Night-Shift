@@ -28,3 +28,5 @@
 .menu-panel .help{margin-top:22px}
 @media(max-height:760px){.menu-panel h1{font-size:clamp(54px,10vh,88px);margin:12px 0 16px}.menu-panel p{font-size:13px}.menu-panel button{margin-top:14px}.menu-panel .help{margin-top:12px}}
 @media(max-width:500px){.settings-grid{grid-template-columns:1fr}.menu-panel h1{font-size:70px}}
+
+#night-status{position:fixed;top:91px;left:24px;font:700 11px/1.5 monospace;letter-spacing:.13em;color:#a9cbbf;text-shadow:0 1px 7px #000;pointer-events:none;z-index:3}

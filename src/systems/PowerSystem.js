@@ -25,6 +25,12 @@ export class PowerSystem {
   this.energy=Math.max(0,this.energy-draw*dt);
   if(this.energy===0){this.outage=true;this.alarmRemaining=0}
  }
+ drain(amount){
+  const loss=Math.max(0,Number(amount)||0);
+  this.energy=Math.max(0,this.energy-loss);
+  if(this.energy===0){this.outage=true;this.alarmRemaining=0}
+  return Math.min(loss,this.capacity);
+ }
  restore(){this.energy=this.capacity;this.outage=false;this.alarmRemaining=0}
  get status(){return {energy:this.energy,capacity:this.capacity,percent:Math.round(this.energy/this.capacity*100),powered:this.powered,alarmRemaining:this.alarmRemaining,circuits:{...this.circuits}}}
 }

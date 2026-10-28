@@ -6,6 +6,6 @@ export class EndingUI{
   this.node.querySelector('#ending-restart').onclick=onRestart;
   this.node.querySelector('#ending-continue').onclick=onContinue;
  }
- show(end,hasSave){this.node.style.display='grid';this.node.querySelector('#ending-title').textContent=end.title;this.node.querySelector('#ending-body').textContent=end.description;this.node.querySelector('#ending-clock').textContent=end.clock+' // REGISTRO FINAL';this.node.querySelector('#ending-continue').style.display=hasSave?'inline-block':'none'}
+ show(end,hasSave,{night=1,nextNight=false}={}){this.node.style.display='grid';this.node.querySelector('#ending-title').textContent=end.title;this.node.querySelector('#ending-body').textContent=end.description;this.node.querySelector('#ending-clock').textContent=end.clock+' // REGISTRO FINAL';this.node.querySelector('#ending-continue').style.display=hasSave&&!nextNight?'inline-block':'none';this.node.querySelector('#ending-restart').textContent=nextNight?(night<5?'PRÓXIMA NOITE':'RECOMEÇAR CAMPANHA'):(end.kind==='lost'?'TENTAR NOVAMENTE':'NOVO TURNO')}
  hide(){this.node.style.display='none'}
 }

@@ -1,6 +1,6 @@
-# NIGHT SHIFT — Turno de 20 minutos
+# NIGHT SHIFT — Campanha de cinco noites
 
-Jogo de terror em Three.js e Vite. Preserva a criatura, audição circular e agressividade progressiva.
+Terror psicológico em Three.js + Vite. Cada noite vai das 23h às 06h e dura **20 minutos reais**. A iluminação ficou moderadamente mais escura, preservando a lanterna e as áreas iluminadas.
 
 ## Iniciar
 ```bash
@@ -8,32 +8,28 @@ npm install
 npm run dev
 ```
 
-## Alterações da revisão
-- **Turno completo de 20 minutos reais**, das 23:00 às 06:00. Um minuto no jogo = 20/7 segundos reais. A saída abre às 05:30 (18 min 34 s reais).
-- Checkpoints de versões anteriores são convertidos para preservar o **horário do jogo**, sem apagar progresso.
-- Pistas importantes (chave, ocorrências, diário, Projeto Vigília e Prontuário 013) surgem em **dois pontos possíveis** sobre superfícies de cada sala, selecionados pelo seed da campanha. Assim as missões exigem procurar no setor, não ir sempre à mesma coordenada.
-- Gavetas com 50% de chance independente de conter uma pista; os papéis acompanham o corpo deslizante, não flutuam fora da gaveta. Gaveta do centro cirúrgico voltada para a área acessível.
-- **Cinco câmeras CCTV**: corredor central, corredor oeste, enfermaria/gerador, acesso cirúrgico e entrada da segurança. Todas observam áreas relevantes para a patrulha ou a invasão.
-- CCTV detecta movimento da criatura na imagem e mostra aviso. Para concluir o objetivo, observe **dois setores por pelo menos 0,8 segundo cada**, trocando com 1–5 ou setas.
-- O gerador continua na enfermaria, e a cirurgia no setor nordeste.
-- Nenhuma alteração na audição, velocidade de perseguição ou agressividade da criatura.
+## Progressão
+Sobreviva até 06h ou conclua todos os objetivos e saia às 05h30. Na tela final, **Próxima noite** avança automaticamente, até a quinta. Uma captura permite **Tentar novamente** na noite atual. **Novo turno** no menu reinicia toda a campanha na Noite 1. A noite ativa e os checkpoints ficam no navegador.
 
-## Campanha
-1. Encontrar chave da segurança;
-2. Ler registro de ocorrência;
-3. Monitorar dois setores via CCTV;
-4. Acionar gerador na enfermaria;
-5. Encontrar diário de Helena;
-6. Investigar o Projeto VIGÍLIA na administração;
-7. Descobrir Prontuário 013 na cirurgia;
-8. Retornar à segurança;
-9. Sair após 05:30 ou sobreviver até 06:00.
+| Noite | Tema | Invasões previstas |
+|---|---|---:|
+| 1 | O Primeiro Plantão | 0 |
+| 2 | A Voz no Corredor | 1 |
+| 3 | A Ala Lacrada | 2 |
+| 4 | A Vigília | 3 |
+| 5 | 03:17 | 4 |
 
-A invasão da segurança continua sorteada a cada campanha, no mesmo intervalo de horário do jogo.
+Os ataques são sorteados entre pontos diferentes da madrugada. Uma mensagem de alerta aparece aproximadamente quatro minutos de jogo antes do ataque. Um medidor visível indica a irritação do monstro de 0 a 4. A irritação sobe com a madrugada e com as noites e influencia audição, perseguição e buscas; o teto de velocidade continua abaixo da corrida do jogador.
 
-## Testar
+## Energia e sorte
+Três momentos por noite sorteiam um valor de 0 a 3. Quando sai **1 ou 3**, o hospital perde energia, com perda crescente por noite. Quando sai 0 ou 2, não há perda. Os valores são determinísticos por partida e salvos no checkpoint. Use o gerador da enfermaria para recuperar energia. As oscilações são adicionais ao consumo normal.
+
+## Lore nas gavetas
+As quatro gavetas têm chances de documentos e novos textos a cada noite, revelando por partes o destino de Elias, o Projeto VIGÍLIA e a responsabilidade da direção do Hospital Santa Avelina. As pistas da história principal continuam distribuídas pelo mapa.
+
+## Testes
 ```bash
 node --test test/*.test.js
 npm run build
 ```
-O GitHub Actions também executa um teste de inicialização em navegador.
+O GitHub Actions verifica os testes, build e inicialização no Chrome. Faça também uma partida manual para avaliar ritmo, visibilidade e comportamento da criatura em todas as noites.

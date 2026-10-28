@@ -1,8 +1,9 @@
 import {DOCUMENTS} from './StoryContent.js';
+import {nightDrawerReport} from './NightLore.js';
 import {objectivePosition} from '../world/ObjectiveLocations.js';
 import * as THREE from 'three';
 const cube=(parent,x,y,z,w,h,d,mat)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);o.position.set(x,y,z);parent.add(o);return o};
-export function populateInteractables(hospital,interaction,player,inventory,onMessage,onNoise=()=>{},campaignRandom=null){
+export function populateInteractables(hospital,interaction,player,inventory,onMessage,onNoise=()=>{},campaignRandom=null,night=1){
  const {scene,m,collision}=hospital;
  const result={doors:[],hideSpots:[]};
  const doors=[[-11,-2],[-3,-2],[5,-2],[12,-2],[-11,2],[-3,2],[5,2],[12,2]];
@@ -66,7 +67,7 @@ export function populateInteractables(hospital,interaction,player,inventory,onMe
   }});
   // Register AFTER the drawer, otherwise the drawer's mesh lookup shadows this document.
   if(hasNote){
-   const doc=DOCUMENTS[{deskReception:'drawerA',deskOffice:'drawerB',deskSecurity:'drawerC',deskSurgery:'drawerD'}[id]];
+   const doc=nightDrawerReport(night,id);
    interaction.register(paper,{kind:'document',document:doc,label:()=> '[E] Ler papel encontrado: '+doc.title});
   }
  }
