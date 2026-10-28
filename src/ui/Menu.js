@@ -11,7 +11,7 @@ export class Menu{
    <label for="volume">VOLUME <span id="volume-value">42%</span></label><input id="volume" type="range" min="0" max="100" value="42">
    <label for="sensitivity">SENSIBILIDADE <span id="sensitivity-value">100%</span></label><input id="sensitivity" type="range" min="35" max="180" value="100">
   </div>
-  <div class="help">WASD MOVER • MOUSE OLHAR • SHIFT CORRER • CTRL AGACHAR<br>E INTERAGIR • F LANTERNA • R BATERIA • TAB INVENTÁRIO<br>CCTV 1–4 OU ← → • ESC PAUSAR • F3 DIAGNÓSTICO</div></section>`;
+  <div class="help">WASD MOVER • MOUSE OLHAR • SHIFT CORRER • CTRL AGACHAR<br>E INTERAGIR • F LANTERNA • R BATERIA • TAB INVENTÁRIO<br>CCTV 1–5 OU ← → • ESC PAUSAR • F3 DIAGNÓSTICO</div></section>`;
   root.append(this.node);
   this.node.querySelector('#play').onclick=onStart;
  }

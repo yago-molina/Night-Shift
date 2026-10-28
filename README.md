@@ -1,6 +1,6 @@
-# NIGHT SHIFT — Capítulo Santa Avelina
+# NIGHT SHIFT — Turno de 20 minutos
 
-Survival horror FPS em Three.js + Vite. Mantém a base estável da Fase 8, com IA de audição circular.
+Jogo de terror em Three.js e Vite. Preserva a criatura, audição circular e agressividade progressiva.
 
 ## Iniciar
 ```bash
@@ -8,37 +8,32 @@ npm install
 npm run dev
 ```
 
-## Nova história
-O antigo **Hospital Santa Avelina** realizou o **Projeto VIGÍLIA** com o paciente Elias (013). Registros de uma enfermeira, da administração, da manutenção e do centro cirúrgico revelam o encobrimento do experimento ocorrido às **03:17**.
+## Alterações da revisão
+- **Turno completo de 20 minutos reais**, das 23:00 às 06:00. Um minuto no jogo = 20/7 segundos reais. A saída abre às 05:30 (18 min 34 s reais).
+- Checkpoints de versões anteriores são convertidos para preservar o **horário do jogo**, sem apagar progresso.
+- Pistas importantes (chave, ocorrências, diário, Projeto Vigília e Prontuário 013) surgem em **dois pontos possíveis** sobre superfícies de cada sala, selecionados pelo seed da campanha. Assim as missões exigem procurar no setor, não ir sempre à mesma coordenada.
+- Gavetas com 50% de chance independente de conter uma pista; os papéis acompanham o corpo deslizante, não flutuam fora da gaveta. Gaveta do centro cirúrgico voltada para a área acessível.
+- **Cinco câmeras CCTV**: corredor central, corredor oeste, enfermaria/gerador, acesso cirúrgico e entrada da segurança. Todas observam áreas relevantes para a patrulha ou a invasão.
+- CCTV detecta movimento da criatura na imagem e mostra aviso. Para concluir o objetivo, observe **dois setores por pelo menos 0,8 segundo cada**, trocando com 1–5 ou setas.
+- O gerador continua na enfermaria, e a cirurgia no setor nordeste.
+- Nenhuma alteração na audição, velocidade de perseguição ou agressividade da criatura.
 
-- Gavetas em quatro pontos do hospital: cada uma tem **50% de chance** de conter uma pista adicional, com sorteio independente.
-- Os resultados das gavetas e o horário do ataque especial são determinados por um seed salvo no checkpoint. A campanha continua com o mesmo sorteio ao recarregar.
-- Os registros da recepção, manutenção, enfermaria e administração trazem informações adicionais.
-- O centro cirúrgico está agora **na ala norte leste**; o prontuário 013 fica na mesa ao fundo.
-- O **gerador** foi movido da segurança para a **enfermaria antiga, ala norte oeste**. O painel de circuitos permanece na segurança, mas a energia só é restabelecida fisicamente no gerador.
+## Campanha
+1. Encontrar chave da segurança;
+2. Ler registro de ocorrência;
+3. Monitorar dois setores via CCTV;
+4. Acionar gerador na enfermaria;
+5. Encontrar diário de Helena;
+6. Investigar o Projeto VIGÍLIA na administração;
+7. Descobrir Prontuário 013 na cirurgia;
+8. Retornar à segurança;
+9. Sair após 05:30 ou sobreviver até 06:00.
 
-## Campanha expandida
-1. Chave da segurança
-2. Registro da ocorrência
-3. Câmeras CCTV
-4. Localizar e acionar o gerador da enfermaria antiga
-5. Encontrar o diário da enfermeira
-6. Descobrir os registros do Projeto VIGÍLIA na administração
-7. Encontrar o Prontuário 013 no centro cirúrgico transferido
-8. Retornar à segurança
-9. Sobreviver até 05:30 e encerrar o turno
+A invasão da segurança continua sorteada a cada campanha, no mesmo intervalo de horário do jogo.
 
-## Ataque aleatório à segurança
-- Uma invasão ocorre uma vez durante cada campanha, em um minuto sorteado entre **01:25 e 03:59** (hora do jogo).
-- Dura **45 segundos reais**, com sinal de alerta e falhas momentâneas na iluminação.
-- Apenas durante esse evento ou em perseguição comum o monstro pode abrir a porta e invadir a segurança.
-- A criatura pode encontrar o jogador se ele se expuser; esconder-se corretamente continua útil.
-- O monstro desiste da invasão ao final do evento. O horário é preservado entre checkpoints.
-
-## Testes
+## Testar
 ```bash
 node --test test/*.test.js
 npm run build
 ```
-
-A integração também é validada em Chrome pelo workflow do GitHub Actions.
+O GitHub Actions também executa um teste de inicialização em navegador.

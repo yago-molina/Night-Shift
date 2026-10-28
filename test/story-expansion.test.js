@@ -67,7 +67,7 @@ test('gavetas têm papel opcional, todas as salas possuem documentos e cirurgia 
  assert.ok(documents.some(x=>x.startsWith('Diário da enfermeira')));
  assert.ok(documents.some(x=>x.startsWith('Projeto VIGÍLIA')));
  const surgical=registered.find(e=>e.kind==='document'&&e.document.title.startsWith('Prontuário 013'));
- assert.equal(surgical.obj.position.x,11);
+ assert.ok([12.18,11.05].includes(surgical.obj.position.x));
  assert.equal(registered.filter(e=>e.kind==='drawer').length,4);
 });
 test('gerador físico fica fora da segurança e aciona progresso',()=>{

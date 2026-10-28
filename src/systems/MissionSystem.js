@@ -1,13 +1,14 @@
 export const SHIFT_MINUTES=420;
-export const SECONDS_PER_MINUTE=6;
+export const SECONDS_PER_MINUTE=20/7; // 420 game minutes / 20 real minutes
+export const LEGACY_SECONDS_PER_MINUTE=6;
 export const MISSIONS=[
- {id:'key',title:'Encontre a chave da sala de segurança',hint:'Procure sobre a mesa de vigilância.'},
- {id:'incident',title:'Investigue o registro do plantão',hint:'Leia o documento sobre a mesa da segurança.'},
- {id:'cctv',title:'Inspecione o circuito de câmeras',hint:'Acesse o monitor da segurança com E.'},
+ {id:'key',title:'Encontre a chave da sala de segurança',hint:'O plantão deixou a chave entre os equipamentos da vigilância.'},
+ {id:'incident',title:'Investigue o registro do plantão',hint:'Procure entre os registros do último vigia.'},
+ {id:'cctv',title:'Inspecione o circuito de câmeras',hint:'Inspecione pelo menos dois setores através das câmeras CCTV.'},
  {id:'generator',title:'Localize o gerador na enfermaria antiga',hint:'Ala norte, setor oeste: interaja com o gerador.'},
- {id:'ward',title:'Encontre o diário da enfermeira',hint:'Investigue as camas e os arquivos da enfermaria.'},
- {id:'research',title:'Descubra o Projeto VIGÍLIA',hint:'Procure arquivos na administração, ala sul leste.'},
- {id:'evidence',title:'Encontre o Prontuário 013 na nova cirurgia',hint:'Centro cirúrgico transferido para o setor norte leste.'},
+ {id:'ward',title:'Encontre o diário da enfermeira',hint:'Helena costumava registrar informações perto dos pacientes.'},
+ {id:'research',title:'Descubra o Projeto VIGÍLIA',hint:'Os memorandos da direção estão entre papéis administrativos.'},
+ {id:'evidence',title:'Encontre o Prontuário 013 na nova cirurgia',hint:'Procure o prontuário entre as mesas e os instrumentos da cirurgia.'},
  {id:'returned',title:'Volte à sala de segurança',hint:'Retorne ao terminal de encerramento.'},
  {id:'survive',title:'Sobreviva até 05:30 e encerre o turno',hint:'A saída será liberada às 05:30.'}
 ];
@@ -58,10 +59,11 @@ export class MissionSystem{
    description:kind==='truth'?'Você saiu com provas do que aconteceu no hospital. O silêncio poderá finalmente ser quebrado.':kind==='lost'?'Você foi encontrado antes de concluir a investigação.': 'O turno terminou, mas faltam provas. Há perguntas que continuarão sem resposta.'};
   return this.end;
  }
- snapshot(){return {version:1,elapsed:this.elapsed,stage:this.stage,flags:{...this.flags},fired:[...this.fired],checkpointHour:this.checkpointHour,finished:this.finished}}
+ snapshot(){return {version:1,secondsPerMinute:SECONDS_PER_MINUTE,elapsed:this.elapsed,stage:this.stage,flags:{...this.flags},fired:[...this.fired],checkpointHour:this.checkpointHour,finished:this.finished}}
  restore(saved){
   if(!saved||saved.version!==1||this.finished)return false;
-  this.elapsed=Math.min(SHIFT_MINUTES*SECONDS_PER_MINUTE,Math.max(0,Number(saved.elapsed)||0));
+  const fromSecondsPerMinute=Number(saved.secondsPerMinute)>0?Number(saved.secondsPerMinute):LEGACY_SECONDS_PER_MINUTE;
+  this.elapsed=Math.min(SHIFT_MINUTES*SECONDS_PER_MINUTE,Math.max(0,(Number(saved.elapsed)||0)*SECONDS_PER_MINUTE/fromSecondsPerMinute));
   this.flags={...this.flags,...saved.flags};
   // Recalculate stage from flags to migrate pre-expansion checkpoints safely.
   this.stage=0;while(this.stage<MISSIONS.length-1&&this.flags[MISSIONS[this.stage].id])this.stage++;

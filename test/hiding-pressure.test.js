@@ -4,9 +4,9 @@ import * as THREE from 'three';
 import {HidingPressure} from '../src/systems/HidingPressure.js';
 import {Monster} from '../src/ai/Monster.js';
 import {CollisionWorld} from '../src/world/CollisionWorld.js';
-test('tempo do turno equivale a 42 minutos reais',async()=>{
+test('tempo do turno equivale a 20 minutos reais',async()=>{
  const {SHIFT_MINUTES,SECONDS_PER_MINUTE}=await import('../src/systems/MissionSystem.js');
- assert.equal(SHIFT_MINUTES*SECONDS_PER_MINUTE,2520);
+ assert.equal(SHIFT_MINUTES*SECONDS_PER_MINUTE,1200);
 });
 test('esconderijo dá margem inicial antes do risco aumentar',()=>{
  const pressure=new HidingPressure();

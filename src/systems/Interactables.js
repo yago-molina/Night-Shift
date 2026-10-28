@@ -1,4 +1,5 @@
 import {DOCUMENTS} from './StoryContent.js';
+import {objectivePosition} from '../world/ObjectiveLocations.js';
 import * as THREE from 'three';
 const cube=(parent,x,y,z,w,h,d,mat)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);o.position.set(x,y,z);parent.add(o);return o};
 export function populateInteractables(hospital,interaction,player,inventory,onMessage,onNoise=()=>{},campaignRandom=null){
@@ -35,12 +36,16 @@ export function populateInteractables(hospital,interaction,player,inventory,onMe
   interaction.register(group,{kind:'pickup',item,label:()=> '[E] Pegar '+item.name});
  }
  // A chave fica ao alcance do jogador dentro da sala de segurança, na mesa.
- pickup(-3,.99,-9.3,{id:'security-key',type:'key',name:'Chave da segurança'},0xd8bb72);
- pickup(-2,.99,-9.3,{id:'battery-01',type:'battery',name:'Bateria reserva'},0x87c6b3);
+ const [keyX,keyY,keyZ]=objectivePosition('key',campaignRandom);
+ pickup(keyX,keyY,keyZ,{id:'security-key',type:'key',name:'Chave da segurança'},0xd8bb72);
+ pickup(-2.5,1.01,-9.45,{id:'battery-01',type:'battery',name:'Bateria reserva'},0x87c6b3);
  pickup(-12,1.05,-9,{id:'battery-02',type:'battery',name:'Bateria reserva'},0x87c6b3);
  pickup(5,.98,8,{id:'battery-03',type:'battery',name:'Bateria reserva'},0x87c6b3);
- function drawer(x,z,id){
-  const frame=new THREE.Group();frame.position.set(x,.63,z);scene.add(frame);
+ function drawer(x,z,id,{faceNorth=false}={}){
+  const frame=new THREE.Group();frame.position.set(x,.63,z);
+  if(faceNorth)frame.rotation.y=Math.PI;
+  scene.add(frame);
+  // A complete sliding tray, aligned with the desk and facing the accessible room side.
   cube(frame,0,0,0,.75,.35,.55,m.wood);
   const tray=new THREE.Group();tray.position.z=.28;frame.add(tray);
   cube(tray,0,-.085,0,.66,.045,.48,m.wood);
@@ -48,35 +53,38 @@ export function populateInteractables(hospital,interaction,player,inventory,onMe
   cube(tray,0,0,.25,.72,.3,.05,m.trim);
   cube(tray,0,0,.30,.18,.05,.045,m.metal);
   let opened=false;
-  // Independent 50/50 roll for each drawer, stable for the current campaign seed.
-  const note=campaignRandom?.drawerHasNote(id)??(Math.random()<.5);
-  const paper=new THREE.Group();paper.position.set(x,.94,z+.93);paper.visible=false;scene.add(paper);
-  if(note){
-   cube(paper,0,0,0,.29,.018,.36,m.bed);
+  const hasNote=campaignRandom?.drawerHasNote(id)??(Math.random()<.5);
+  const paper=new THREE.Group();paper.position.set(0,.14,.05);paper.visible=false;tray.add(paper);
+  if(hasNote){
+   cube(paper,0,0,0,.29,.018,.31,m.bed);
    cube(paper,0,.012,-.07,.22,.004,.012,m.trim);
+  }
+  interaction.register(frame,{kind:'drawer',label:()=> '[E] '+(opened?'Fechar':'Abrir')+' gaveta',action:()=>{
+   opened=!opened;tray.position.z=opened?.62:.28;paper.visible=opened&&hasNote;
+   onMessage(opened?(hasNote?'Há um documento na gaveta.':'Gaveta vazia.'):'Gaveta fechada.');
+   onNoise(frame.position,4);
+  }});
+  // Register AFTER the drawer, otherwise the drawer's mesh lookup shadows this document.
+  if(hasNote){
    const doc=DOCUMENTS[{deskReception:'drawerA',deskOffice:'drawerB',deskSecurity:'drawerC',deskSurgery:'drawerD'}[id]];
    interaction.register(paper,{kind:'document',document:doc,label:()=> '[E] Ler papel encontrado: '+doc.title});
   }
-  interaction.register(frame,{kind:'drawer',label:()=> '[E] '+(opened?'Fechar':'Abrir')+' gaveta',action:()=>{
-   opened=!opened;tray.position.z=opened?.55:.28;
-   paper.visible=opened&&note;
-   onMessage(opened?(note?'Há um papel antigo dentro da gaveta.':'Gaveta vazia.'):'Gaveta fechada.');
-   onNoise(frame.position,4);
-  }});
  }
- // Gavetas posicionadas nas mesas; podem ser abertas e fechadas.
- drawer(-12,-8.95,'deskReception');drawer(12,-8.95,'deskOffice');drawer(-3,-8.95,'deskSecurity');drawer(11,10.55,'deskSurgery');
+ drawer(-12,-8.60,'deskReception');
+ drawer(12,-8.60,'deskOffice');
+ drawer(-3,-8.88,'deskSecurity');
+ drawer(11,10.58,'deskSurgery',{faceNorth:true});
  const docs=[
-  {x:-3.8,y:.985,z:-9.25,...DOCUMENTS.occurrence},
-  {x:-11.8,y:.985,z:-8.9,...DOCUMENTS.maintenance},
-  {x:11.5,y:.985,z:-8.9,...DOCUMENTS.office},
-  {x:-12,y:.85,z:7.05,...DOCUMENTS.ward},
-  {x:12.9,y:.985,z:-8.72,...DOCUMENTS.research},
-  {x:11,y:.995,z:10.75,...DOCUMENTS.surgery},
-  {x:-12.2,y:.99,z:-9.2,...DOCUMENTS.reception}
+  {id:'occurrence',...DOCUMENTS.occurrence},
+  {id:'maintenance',...DOCUMENTS.maintenance},
+  {id:'office',...DOCUMENTS.office},
+  {id:'ward',...DOCUMENTS.ward},
+  {id:'research',...DOCUMENTS.research},
+  {id:'surgery',...DOCUMENTS.surgery},
+  {id:'reception',...DOCUMENTS.reception}
  ];
  for(const d of docs){
-  const g=new THREE.Group();g.position.set(d.x,d.y,d.z);scene.add(g);
+  const g=new THREE.Group();g.position.set(...objectivePosition(d.id,campaignRandom));scene.add(g);
   cube(g,0,0,0,.34,.025,.43,m.bed);cube(g,0,.015,-.09,.25,.005,.015,m.trim);
   interaction.register(g,{kind:'document',document:d,label:()=> '[E] Ler documento: '+d.title});
  }

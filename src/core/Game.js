@@ -68,7 +68,7 @@ export class Game{
   this.securityUI=new SecurityUI(root);
   this.alarmPulse=0;
   installSecurityInteractables({hospital:this.hospital,interactions:this.interactions,power:this.power,cctv:this.cctv,player:this.player,
-    onCCTV:()=>{this.missions?.action('cctv');this.enterCCTV()},onMessage:t=>this.hud.message(t),onGenerator:()=>this.missions?.action('generator'),onAlarm:()=>{
+    onCCTV:()=>this.enterCCTV(),onMessage:t=>this.hud.message(t),onGenerator:()=>this.missions?.action('generator'),onAlarm:()=>{
       const pos={x:-3,z:-9.2};this.monster.hearNoise(pos,45);this.audio.effect('alarm',pos,this.player.position);
     }});
 
@@ -129,7 +129,7 @@ export class Game{
  }
  saveCheckpoint(reason){
   if(!this.missions||this.missions.finished)return;
-  const data={version:1,seed:this.campaignRandom.seed,raid:this.raid.snapshot(),hidingPressure:this.hidingPressure.snapshot(),missions:this.missions.snapshot(),player:{x:this.player.position.x,z:this.player.position.z,battery:this.player.battery,stamina:this.player.stamina},inventory:this.inventory.getAll(),power:{energy:this.power.energy,outage:this.power.outage,circuits:{...this.power.circuits}},reason};
+  const data={version:1,seed:this.campaignRandom.seed,raid:this.raid.snapshot(),cctvObserved:[...this.cctv.observed],hidingPressure:this.hidingPressure.snapshot(),missions:this.missions.snapshot(),player:{x:this.player.position.x,z:this.player.position.z,battery:this.player.battery,stamina:this.player.stamina},inventory:this.inventory.getAll(),power:{energy:this.power.energy,outage:this.power.outage,circuits:{...this.power.circuits}},reason};
   this.saveSystem.save(data);
  }
  restoreCheckpoint(){
@@ -152,6 +152,7 @@ export class Game{
    this.power.outage=Boolean(data.power.outage)||this.power.energy===0;
    this.power.circuits={...this.power.circuits,...data.power.circuits};
   }
+  this.cctv.observed=new Set((data.cctvObserved||[]).filter(i=>Number.isInteger(i)&&i>=0&&i<this.cctv.cameras.length));
   this.hidingPressure.restore(data.hidingPressure);
   this.monster.reset();this.raid.restore(data.raid);
   if(this.raid.active)this.monster.startRaid();
@@ -188,6 +189,7 @@ export class Game{
    this.hospital.update(dt);
    this.power.update(dt,{cctvActive:viewing});
    this.cctv.update(dt,Math.hypot(this.player.position.x+3,this.player.position.z+9.3)<3.5);
+   if(this.cctv.observed.size>=2)this.missions.action('cctv');
    if(viewing&&!this.cctv.active)this.exitCCTV();
    this.monster.setProgress({minutes:this.missions.minutes,stage:this.missions.stage});
    this.monster.setHidingPressure(this.hidingPressure.update(dt,this.player.hidden));
@@ -212,10 +214,10 @@ export class Game{
    if(this.input.pressed('F2'))this.performanceUI.toggle();
    this.debugUI.update(this.monster,this.player);
    if(this.cctv.active){
-     for(let i=0;i<4;i++)if(this.input.pressed('Digit'+(i+1)))this.cctv.select(i);
+     for(let i=0;i<this.cctv.cameras.length;i++)if(this.input.pressed('Digit'+(i+1)))this.cctv.select(i);
      if(this.input.pressed('ArrowLeft'))this.cctv.select(this.cctv.index-1);
      if(this.input.pressed('ArrowRight'))this.cctv.select(this.cctv.index+1);
-     this.securityUI.update(this.cctv,this.power);
+     this.securityUI.update(this.cctv,this.power,this.monster,this.hospital.collision);
      if(this.input.pressed('KeyE'))this.exitCCTV();
      this.input.clearPressed();
      this.post.composer.passes[0].camera=this.cctv.active?this.cctv.current.camera:this.camera;

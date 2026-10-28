@@ -7,7 +7,7 @@ export class HUD{
  setTension(n){this.node.querySelector('#tension-vignette').style.opacity=String(Math.max(0,Math.min(.65,n*.52)))}
  message(text){this.node.querySelector('#toast').textContent=text;this.toastTimeout=3.5}
  update(elapsed,status,hint='',battery=100,count=0,dt=0){
-  const minutes=Math.floor(elapsed/18);this.node.querySelector('#clock').textContent=String((23+Math.floor(minutes/60))%24).padStart(2,'0')+':'+String(minutes%60).padStart(2,'0');
+  // The campaign owns the clock; setClock() provides the single authoritative time.
   this.node.querySelector('#stamina').style.width=status.stamina+'%';
   this.node.querySelector('#battery-bar').style.width=battery+'%';
   this.node.querySelector('#battery-label').textContent='F • LANTERNA | R • RECARREGAR ('+count+')';
