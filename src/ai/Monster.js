@@ -65,7 +65,10 @@ export class Monster{
   this.pathTime-=dt;
   if(this.pathTime<=0){this.path=this.navigation.path(this.position,point);this.pathTime=this.state===AIState.CHASE?.35:.85}
   while(this.path.length&&dist(this.position,this.path[0])<.34)this.path.shift();
-  return this.path[0]||point;
+  if(this.path.length)return this.path[0];
+  // Never fall back to a forbidden destination when navigation finds no route.
+  if(this.navigation.blockedArea(point))return V(-3,-1.05);
+  return point;
  }
  // Open a door only if upcoming A* waypoints actually cross its threshold.
  isDoorOnRoute(door){
@@ -92,6 +95,10 @@ export class Monster{
   const dx=(point.x-this.position.x)/d,dz=(point.z-this.position.z)/d;
   const step=Math.min(speed*dt,d);
   const x=this.position.x,z=this.position.z;
+  const nx=x+dx*step,nz=z+dz*step;
+  const outsideSecurity=!(x>-6.7&&x<.7&&z< -2.15);
+  const steppingIntoSecurity=nx>-6.7&&nx<.7&&nz< -2.15;
+  if(this.state!==AIState.CHASE&&outsideSecurity&&steppingIntoSecurity)return;
   this.collision.move(this.position,dx*step,dz*step);
   const travelled=Math.hypot(this.position.x-x,this.position.z-z);
   if(travelled>.001){this.facing.set(dx,0,dz);this.model.rotation.y=Math.atan2(-dx,-dz);this.step+=dt*speed*4}
