@@ -2,7 +2,7 @@ import * as THREE from 'three';
 // Cameras watch the creature's ACTUAL patrol route, not unvisited corners.
 export const CCTV_LOCATIONS=[
  {name:'CORREDOR CENTRAL',pos:[-3,2.75,0],look:[6,1.3,0],patrol:[5,0]},
- {name:'CORREDOR OESTE',pos:[-12,2.75,0],look:[-3,1.3,0],patrol:[-11,0]},
+ {name:'CORREDOR OESTE',pos:[-15.1,2.75,0],look:[-9,1.3,0],patrol:[-11,0]},
  {name:'ENFERMARIA / GERADOR',pos:[-11,2.75,3.1],look:[-11,1.3,9],patrol:[-11,9]},
  {name:'ACESSO CIRÚRGICO',pos:[13.5,2.75,3.1],look:[13.5,1.3,9],patrol:[13,9]},
  {name:'ENTRADA SEGURANÇA',pos:[-3,2.75,-.2],look:[-3,1.3,-2.2],patrol:[-3,-1.35]}
