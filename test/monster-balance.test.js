@@ -12,9 +12,9 @@ function setup({monsterX=5,monsterZ=0,playerX=5,playerZ=3}={}){
  m.active=true;m.position.set(monsterX,0,monsterZ);m.model.position.copy(m.position);
  return {m,player,collision};
 }
-test('passos comuns não chamam o monstro além de dois metros',()=>{
+test('passos comuns não chamam o monstro além da zona inicial de 3,4 metros',()=>{
  const {m}=setup({monsterX:5,playerX:5,playerZ:3});
- assert.equal(m.hearsPlayer({moving:true,running:false,crouch:false}),false);
+ assert.equal(m.hearsPlayer({moving:true,running:false,crouch:false}),true);
 });
 test('corrida chama a atenção até cinco metros somente sem obstáculos',()=>{
  const {m,collision}=setup({monsterX:5,playerX:5,playerZ:4});

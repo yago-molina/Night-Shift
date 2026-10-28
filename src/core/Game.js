@@ -174,6 +174,7 @@ export class Game{
    this.power.update(dt,{cctvActive:viewing});
    this.cctv.update(dt,Math.hypot(this.player.position.x+3,this.player.position.z+9.3)<3.5);
    if(viewing&&!this.cctv.active)this.exitCCTV();
+   this.monster.setProgress({minutes:this.missions.minutes,stage:this.missions.stage});
    this.monster.update(dt,status,this.hideSpots);
    if(this.missions.finished){this.post.render(dt);return}
    const atSecurity=this.player.position.x>-6.8&&this.player.position.x<.8&&this.player.position.z< -2.3&&this.player.position.z> -12.7;
