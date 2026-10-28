@@ -68,7 +68,15 @@ test('sorteio de pistas mantém chance de cinquenta por cento em cada gaveta',()
 test('CCTV cobre quatro áreas do caminho da criatura mais a entrada da segurança',()=>{
  assert.equal(CCTV_LOCATIONS.length,5);
  const routes=[[-3,0],[-11,0],[-11,9],[13,9]];
- for(const wp of routes)assert.ok(CCTV_LOCATIONS.some(location=>Math.hypot(location.patrol[0]-wp[0],location.patrol[1]-wp[1])<.2));
+ for(const wp of routes){
+  const seen=CCTV_LOCATIONS.some(location=>{
+   const camera=new THREE.PerspectiveCamera(70,16/9,.1,55);
+   camera.position.set(...location.pos);camera.lookAt(...location.look);camera.updateMatrixWorld();
+   const v=new THREE.Vector3(wp[0],1.35,wp[1]).project(camera);
+   return Math.abs(v.x)<.98&&Math.abs(v.y)<.98&&v.z>=-1&&v.z<=1;
+  });
+  assert.ok(seen,'patrulha sem cobertura de câmera: '+wp);
+ }
  assert.ok(CCTV_LOCATIONS.some(location=>location.name.includes('SEGURANÇA')));
  for(const location of CCTV_LOCATIONS){
   const camera=new THREE.PerspectiveCamera(70,16/9,.1,55);

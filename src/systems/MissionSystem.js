@@ -25,7 +25,7 @@ export class MissionSystem{
   this.onMission=onMission;this.onEvent=onEvent;this.onCheckpoint=onCheckpoint;
   this.elapsed=0;this.stage=0;this.flags={key:false,incident:false,cctv:false,generator:false,ward:false,research:false,evidence:false,returned:false,alarm:false,powerFailure:false};this.fired=[];this.finished=false;this.end=null;this.checkpointHour=-1;this.lastSavedStage=-1;
  }
- get minutes(){return Math.min(SHIFT_MINUTES,Math.floor(this.elapsed/SECONDS_PER_MINUTE))}
+ get minutes(){return Math.min(SHIFT_MINUTES,Math.floor(this.elapsed/SECONDS_PER_MINUTE+1e-9))}
  get clock(){const n=this.minutes;const hour=(23+Math.floor(n/60))%24;return String(hour).padStart(2,'0')+':'+String(n%60).padStart(2,'0')}
  get objective(){return MISSIONS[Math.min(this.stage,MISSIONS.length-1)]}
  update(dt,{atSecurity=false}={}){
