@@ -4,7 +4,7 @@ import {Monster} from '../src/ai/Monster.js';
 import {Navigation} from '../src/ai/Navigation.js';
 import {CollisionWorld} from '../src/world/CollisionWorld.js';
 const door=(x,z,secure=false)=>({position:{x,z},secure,isOpen:false});
-function monster(state,path,pos={x:-3,z:-1}){return {position:pos,state,path};}
+function monster(state,path,pos={x:-3,z:-1}){return {position:pos,state,path,inSecurity:Monster.prototype.inSecurity};}
 test('só abre a porta que cruza o próximo trecho da rota',()=>{
  const ctx=monster('PATROL',[{x:-3,z:-1.7},{x:-3,z:-2.4}]);
  assert.equal(Monster.prototype.isDoorOnRoute.call(ctx,door(-3,-2)),true);

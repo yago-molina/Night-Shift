@@ -34,6 +34,7 @@ test('sons e passos da sala de segurança não provocam investigação fora da p
 });
 test('som ouvido inicia uma única investigação e ativa cooldown',()=>{
  const {m}=setup({monsterX:5,monsterZ:0,playerX:5,playerZ:1.5});
+ m.seesPlayer=()=>false;
  m.update(.65,{moving:true,running:false,crouch:false},[]);
  assert.equal(m.state,AIState.INVESTIGATE);
  assert.ok(m.hearingCooldown>0);
