@@ -1,0 +1,13 @@
+export const DOCUMENTS={
+ occurrence:{title:'Registro de ocorrência — 22:47',body:'Hospital Santa Avelina, 1987. O plantão perdeu contato com o isolamento às 22:47. A câmera 03 permaneceu ligada após a queda de energia. Ordem da direção: ninguém sai antes das seis.'},
+ maintenance:{title:'Manutenção — Gerador auxiliar',body:'O gerador foi transferido para a antiga enfermaria da ala norte. O painel da segurança liga os circuitos, mas a recarga exige presença física junto ao equipamento.'},
+ ward:{title:'Diário da enfermeira Helena',body:'Chamávamos de tratamento o que fizeram com Elias, o paciente 013. Todas as noites o submetiam à privação de sono e a gravações de sons. Depois de sua morte, ouvimos passos caminhando dentro das paredes.'},
+ research:{title:'Projeto VIGÍLIA — Observação 12',body:'A direção do Santa Avelina descobriu respostas de pacientes sedados ao som. O protocolo VIGÍLIA foi escondido da equipe clínica. As câmeras não vigiavam pacientes; vigiavam o experimento.'},
+ surgery:{title:'Prontuário 013 — Relatório cirúrgico',body:'Paciente 013: Elias. Óbito registrado às 03:17. Seu batimento continuou aparecendo nos monitores após o desligamento. A direção ordenou destruir os arquivos e lacrar a cirurgia.'},
+ reception:{title:'Carta nunca enviada',body:'Se você encontrou este papel, não acredite no relatório final. Elias não queria machucar ninguém. Foi o diretor quem o deixou preso. Às vezes a coisa no corredor ainda procura uma saída.'},
+ office:{title:'Nota do diretor',body:'Proibido divulgar a ocorrência das 03:17. Os registros devem ser destruídos. A segurança deve permanecer na ala sul enquanto o gerador é mantido ao norte.'},
+ drawerA:{title:'Fragmento — Experimento 013',body:'Dia 19: Elias repetiu três batidas mesmo sedado. A direção mandou aumentar o volume. Não consigo esquecer como ele chorava.'},
+ drawerB:{title:'Fragmento — Última gravação',body:'03:17: silêncio. Às 03:18, alguém sussurrou no gravador: “eu ainda estou aqui”. A voz não era de um funcionário.'},
+ drawerC:{title:'Fragmento — Carta de Helena',body:'Eu tentei libertá-lo. Trancaram o centro cirúrgico e me mandaram embora. Se a energia falhar, procure o gerador na antiga enfermaria.'},
+ drawerD:{title:'Fragmento — A porta',body:'O guarda anterior escreveu: “se a criatura entrar na segurança, não responda aos sons. Espere. Ela acaba indo embora.” A última frase estava rasgada.'}
+};

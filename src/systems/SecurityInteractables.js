@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-export function installSecurityInteractables({hospital,interactions,power,cctv,player,onCCTV,onMessage,onAlarm}){
+export function installSecurityInteractables({hospital,interactions,power,cctv,player,onCCTV,onMessage,onAlarm,onGenerator=()=>{}}){
  const {scene,m}=hospital;
  const cube=(group,x,y,z,w,h,d,material)=>{const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);mesh.position.set(x,y,z);group.add(mesh);return mesh};
  // Monitor interaction surface is in front of the existing three monitors.
@@ -24,9 +24,18 @@ export function installSecurityInteractables({hospital,interactions,power,cctv,p
    onMessage(control.label+': '+(power.circuits[control.circuit]?'ligado':'desligado'));
   }});
  }
- const breaker=new THREE.Group();breaker.position.set(-6.52,.78,-6.5);scene.add(breaker);
- cube(breaker,0,0,0,.14,.25,.36,m.warning);
- interactions.register(breaker,{label:()=> '[E] '+(!power.powered?'Rearmar disjuntor':'Recarregar gerador'),action:()=>{power.restore();onMessage('Gerador restabelecido. Energia: 100%.')}});
+ // Generator relocated to the old infirmary in the north-west wing.
+ const generator=new THREE.Group();generator.position.set(-13.2,0,10.45);scene.add(generator);
+ cube(generator,0,.65,0,1.25,1.25,.72,m.metal);
+ cube(generator,0,1.18,.37,1.05,.22,.08,m.dark);
+ cube(generator,.25,1.20,.42,.12,.10,.025,m.warning);
+ cube(generator,-.25,1.20,.42,.12,.10,.025,m.screen);
+ for(const dx of [-.4,.4])cube(generator,dx,.19,0,.12,.32,.55,m.black);
+ // The generator body also serves as a solid world obstacle.
+ hospital.collision.add(-13.2,10.45,1.25,.72);
+ interactions.register(generator,{label:()=> '[E] '+(!power.powered?'Rearmar gerador':'Inspecionar / recarregar gerador'),action:()=>{
+   power.restore();onGenerator();onMessage('Gerador da enfermaria reativado. Energia: 100%.');
+ }});
  const alarm=new THREE.Group();alarm.position.set(-2.7,1.15,-9.24);scene.add(alarm);
  cube(alarm,0,0,0,.23,.2,.17,m.warning);
  interactions.register(alarm,{label:()=> '[E] Acionar alarme de distração',action:()=>{if(!power.triggerAlarm()){onMessage('Alarme indisponível, desligado ou em recarga.');return}onAlarm();onMessage('Alarme ativado! A criatura pode investigar a sala.')}});

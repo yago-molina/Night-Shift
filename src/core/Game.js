@@ -25,6 +25,8 @@ import {SaveSystem} from '../systems/SaveSystem.js';
 import {EndingUI} from '../ui/EndingUI.js';
 import {GraphicsSettings} from './GraphicsSettings.js';
 import {PerformanceUI} from '../ui/PerformanceUI.js';
+import {CampaignRandom} from '../systems/CampaignRandom.js';
+import {RaidSystem} from '../systems/RaidSystem.js';
 export class Game{
  constructor(root){
   this.running=false;this.elapsed=0;this.overlay=null;this.settings=new GraphicsSettings();
@@ -42,13 +44,15 @@ export class Game{
   this.menu=new Menu(root,()=>{this.audio.start();this.input.lock()});
   this.menu.addSettings(options=>this.applySettings(options),this.settings.options);
   this.audio.setVolume(this.settings.options.volume/100);
+  this.saveSystem=new SaveSystem();
+  this.campaignRandom=new CampaignRandom(this.saveSystem.load()?.seed);
   this.inventory=new InventorySystem();
   this.inventoryUI=new InventoryUI(root,()=>this.closeOverlay());
   this.documentUI=new DocumentUI(root,()=>this.closeOverlay());
   this.interactions=new InteractionSystem(this.camera,this.scene,this.player,this.inventory,t=>this.hud.message(t),doc=>this.openDocument(doc));
   const worldItems=populateInteractables(this.hospital,this.interactions,this.player,this.inventory,t=>this.hud.message(t),(p,r)=>{
     this.monster?.hearNoise(p,r);this.audio.effect('door',p,this.player.position)
-  });
+  },this.campaignRandom);
   this.monster=new Monster(this.scene,this.hospital.collision,this.player,worldItems.doors,{onAttack:()=>this.onCaught(),onState:(next)=>{if(next==='CHASE')this.hud.message('Você ouviu passos acelerando atrás de você...')}});
   this.hideSpots=worldItems.hideSpots;
   this.gameOverUI=new GameOverUI(root,()=>window.location.reload());
@@ -62,23 +66,29 @@ export class Game{
   this.securityUI=new SecurityUI(root);
   this.alarmPulse=0;
   installSecurityInteractables({hospital:this.hospital,interactions:this.interactions,power:this.power,cctv:this.cctv,player:this.player,
-    onCCTV:()=>{this.missions?.action('cctv');this.enterCCTV()},onMessage:t=>this.hud.message(t),onAlarm:()=>{
+    onCCTV:()=>{this.missions?.action('cctv');this.enterCCTV()},onMessage:t=>this.hud.message(t),onGenerator:()=>this.missions?.action('generator'),onAlarm:()=>{
       const pos={x:-3,z:-9.2};this.monster.hearNoise(pos,45);this.audio.effect('alarm',pos,this.player.position);
     }});
 
   this.director=new HorrorDirector({audio:this.audio,lighting:this.hospital.lighting,post:this.post,monster:this.monster,player:this.player,onEvent:(kind,pos)=>{
     if(kind==='bang')this.monster.hearNoise(pos,7);
   }});
-  this.saveSystem=new SaveSystem();
   this.missions=new MissionSystem({
    onMission:(objective)=>{this.hud.setMission(objective);this.hud.message('OBJETIVO ATUALIZADO: '+objective.title)},
    onEvent:(event)=>this.storyEvent(event),
    onCheckpoint:(reason)=>this.saveCheckpoint(reason)
   });
+  this.raid=new RaidSystem(this.campaignRandom.raidMinute(),{
+   duration:45,
+   onStart:()=>{this.monster.startRaid();this.hospital.lighting.flickerNearest({x:-3,z:-7},5);this.audio.effect('radio');this.hud.message('ALERTA: portas da segurança sob ataque! A criatura está vindo!')},
+   onEnd:()=>{this.monster.stopRaid();this.hud.message('O ataque cessou. O corredor voltou ao silêncio.')}
+  });
   this.interactions.onAction=(kind,data)=>{
    if(kind==='pickup'&&data.id==='security-key')this.missions.action('key');
    if(kind==='document'&&data.title.startsWith('Registro de ocorrência'))this.missions.action('incident');
    if(kind==='document'&&data.title.startsWith('Prontuário 013'))this.missions.action('evidence');
+   if(kind==='document'&&data.title.startsWith('Diário da enfermeira'))this.missions.action('ward');
+   if(kind==='document'&&data.title.startsWith('Projeto VIGÍLIA'))this.missions.action('research');
   };
   this.registerExtractionTerminal();
   this.endingUI=new EndingUI(root,{onRestart:()=>{this.saveSystem.clear();window.location.reload()},onContinue:()=>window.location.reload()});
@@ -110,14 +120,14 @@ export class Game{
   this.interactions.register(THREE_MESH,{
    label:()=>this.missions.canExtract()?'[E] Encerrar turno e sair do hospital':'[E] Terminal de saída — liberado às 05:30',
    action:()=>{
-    if(!this.missions.canExtract()){this.hud.message(this.missions.stage<5?'Conclua os objetivos antes de sair.':'A saída só será liberada às 05:30.');return}
+    if(!this.missions.canExtract()){this.hud.message(this.missions.stage<8?'Conclua os objetivos antes de sair.':'A saída só será liberada às 05:30.');return}
     this.finishShift('terminal');
    }
   });
  }
  saveCheckpoint(reason){
   if(!this.missions||this.missions.finished)return;
-  const data={version:1,missions:this.missions.snapshot(),player:{x:this.player.position.x,z:this.player.position.z,battery:this.player.battery,stamina:this.player.stamina},inventory:this.inventory.getAll(),power:{energy:this.power.energy,outage:this.power.outage,circuits:{...this.power.circuits}},reason};
+  const data={version:1,seed:this.campaignRandom.seed,raid:this.raid.snapshot(),missions:this.missions.snapshot(),player:{x:this.player.position.x,z:this.player.position.z,battery:this.player.battery,stamina:this.player.stamina},inventory:this.inventory.getAll(),power:{energy:this.power.energy,outage:this.power.outage,circuits:{...this.power.circuits}},reason};
   this.saveSystem.save(data);
  }
  restoreCheckpoint(){
@@ -140,7 +150,9 @@ export class Game{
    this.power.outage=Boolean(data.power.outage)||this.power.energy===0;
    this.power.circuits={...this.power.circuits,...data.power.circuits};
   }
-  this.monster.reset();this.hud.message('Checkpoint restaurado: '+this.missions.clock);
+  this.monster.reset();this.raid.restore(data.raid);
+  if(this.raid.active)this.monster.startRaid();
+  this.hud.message('Checkpoint restaurado: '+this.missions.clock);
  }
  finishShift(reason){
   if(this.missions.finished)return;
@@ -175,6 +187,7 @@ export class Game{
    this.cctv.update(dt,Math.hypot(this.player.position.x+3,this.player.position.z+9.3)<3.5);
    if(viewing&&!this.cctv.active)this.exitCCTV();
    this.monster.setProgress({minutes:this.missions.minutes,stage:this.missions.stage});
+   this.raid.update(dt,this.missions.minutes);
    this.monster.update(dt,status,this.hideSpots);
    if(this.missions.finished){this.post.render(dt);return}
    const atSecurity=this.player.position.x>-6.8&&this.player.position.x<.8&&this.player.position.z< -2.3&&this.player.position.z> -12.7;

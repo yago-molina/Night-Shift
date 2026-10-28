@@ -8,13 +8,13 @@ export class Monster{
   this.scene=scene;this.collision=collision;this.player=player;this.doors=doors;this.onAttack=onAttack;
   this.position=V(13,0,9);this.home=this.position.clone();this.lastKnown=null;
   this.navigation=new Navigation(collision);this.machine=new StateMachine(AIState.PATROL,onState);
-  this.navigation.blockedArea=point=>this.state!==AIState.CHASE && point.x>-6.7 && point.x<.7 && point.z< -2.25;
+  this.navigation.blockedArea=point=>this.state!==AIState.CHASE && !this.securityRaid && point.x>-6.7 && point.x<.7 && point.z< -2.25;
   this.path=[];this.pathTime=0;this.target=null;this.listenTimer=0;this.lostTime=0;this.searchTime=0;this.scanTime=0;
   this.facing=new THREE.Vector3(0,0,-1);this.suspicion=new Map();
   this.patrol=[V(13,9),V(12,0),V(5,0),V(-3,0),V(-11,0),V(-11,9),V(-3,9),V(5,9),V(13,9)];
   this.patrolIndex=0;this.step=0;this.elapsed=0;this.grace=20;this.active=false;
   this.hearingCooldown=0;this.securityCooldown=0;this.searchTime=0;this.recoveryTime=0;
-  this.aggression=0;this.progressMinutes=0;this.progressStage=0;
+  this.aggression=0;this.progressMinutes=0;this.progressStage=0;this.securityRaid=false;
   this.buildModel();
  }
  buildModel(){
@@ -38,11 +38,14 @@ export class Monster{
   this.model.position.copy(this.position);
  }
  get state(){return this.machine.state}
+ startRaid(){this.securityRaid=true;this.active=true;this.remember(V(-3,-7));this.setState(AIState.CHASE);this.lostTime=0}
+ stopRaid(){this.securityRaid=false;this.abandonSecurity()}
+
  setProgress({minutes=0,stage=0}={}){
   this.progressMinutes=Math.max(0,Math.min(420,Number(minutes)||0));
-  this.progressStage=Math.max(0,Math.min(5,Number(stage)||0));
+  this.progressStage=Math.max(0,Math.min(8,Number(stage)||0));
   // Difficulty rises progressively through the night and through completed objectives.
-  this.aggression=Math.min(1,this.progressMinutes/420*.65+this.progressStage/5*.35);
+  this.aggression=Math.min(1,this.progressMinutes/420*.65+this.progressStage/8*.35);
  }
  get hearingRadii(){return {walk:3.4+this.aggression*1.8,run:6.2+this.aggression*2.8,crouch:1.05+this.aggression*.5}}
  get chaseSpeed(){return 3.45+this.aggression*.85}
@@ -113,7 +116,7 @@ export class Monster{
  // Open a door only if upcoming A* waypoints actually cross its threshold.
  isDoorOnRoute(door){
   if(door.isOpen||dist(this.position,door.position)>1.55)return false;
-  if(door.secure&&this.state!==AIState.CHASE&&!this.inSecurity(this.position))return false;
+  if(door.secure&&!this.securityRaid&&this.state!==AIState.CHASE&&!this.inSecurity(this.position))return false;
   let previous=this.position;
   for(const next of this.path.slice(0,10)){
    if(dist(this.position,next)>3.1)break;
@@ -138,7 +141,7 @@ export class Monster{
   const nx=x+dx*step,nz=z+dz*step;
   const outsideSecurity=!(x>-6.7&&x<.7&&z< -2.15);
   const steppingIntoSecurity=nx>-6.7&&nx<.7&&nz< -2.15;
-  if(this.state!==AIState.CHASE&&outsideSecurity&&steppingIntoSecurity)return;
+  if(!this.securityRaid&&this.state!==AIState.CHASE&&outsideSecurity&&steppingIntoSecurity)return;
   this.collision.move(this.position,dx*step,dz*step);
   const travelled=Math.hypot(this.position.x-x,this.position.z-z);
   if(travelled>.001){this.facing.set(dx,0,dz);this.model.rotation.y=Math.atan2(-dx,-dz);this.step+=dt*speed*4}
@@ -167,7 +170,7 @@ export class Monster{
   if(this.state===AIState.ATTACK)return;
   const sees=this.seesPlayer();
   if(sees){this.remember(this.player.position);this.lostTime=0;if(this.state!==AIState.CHASE)this.setState(AIState.CHASE)}
-  else if(this.state===AIState.CHASE){
+  else if(this.state===AIState.CHASE&&!this.securityRaid){
    this.lostTime+=dt;
    if(this.lostTime>1.5&&this.inSecurity(this.player.position)){this.abandonSecurity()}
    else if(this.lostTime>2.5){this.hearingCooldown=3.5;this.setState(AIState.SEARCH)}
@@ -175,7 +178,7 @@ export class Monster{
   this.listenTimer-=dt;
   if(this.listenTimer<=0){this.listenTimer=.65-this.aggression*.18;if(!sees&&this.hearsPlayer(status)){this.investigate(this.player.position);this.hearingCooldown=3.2-this.aggression*.75}}
   // Once a chase ends inside security, leave it without searching/patrolling there.
-  if(this.state!==AIState.CHASE&&this.position.x>-6.7&&this.position.x<.7&&this.position.z< -2.15){
+  if(!this.securityRaid&&this.state!==AIState.CHASE&&this.position.x>-6.7&&this.position.x<.7&&this.position.z< -2.15){
    this.navigation.blockedArea=()=>false;
    const exit=V(-3,-.95);
    this.moveToward(this.routeTo(exit,dt),1.8,dt);
@@ -195,8 +198,8 @@ export class Monster{
    }
    else this.abandonSecurity();
   }else if(s===AIState.CHASE){
-   const target=this.lastKnown||this.player.position;
-   this.moveToward(this.routeTo(target,dt),this.chaseSpeed,dt);
+   const target=this.securityRaid?V(-3,-7):(this.lastKnown||this.player.position);
+   this.moveToward(this.routeTo(target,dt),this.securityRaid?this.chaseSpeed+.38:this.chaseSpeed,dt);
    if(sees&&!this.player.hidden&&dist(this.position,this.player.position)<.85)this.attack();
   }else if(s===AIState.SEARCH){
    this.searchTime+=dt;
@@ -209,5 +212,5 @@ export class Monster{
   this.model.position.y=Math.abs(Math.sin(this.step))*.023;
   this['leg-1'].rotation.x=Math.sin(this.step)*.14;this['leg1'].rotation.x=-Math.sin(this.step)*.14;
  }
- reset(){this.position.copy(this.home);this.model.position.copy(this.home);this.active=false;this.elapsed=0;this.lastKnown=null;this.hearingCooldown=0;this.securityCooldown=0;this.setState(AIState.PATROL)}
+ reset(){this.position.copy(this.home);this.model.position.copy(this.home);this.active=false;this.elapsed=0;this.lastKnown=null;this.hearingCooldown=0;this.securityCooldown=0;this.securityRaid=false;this.setState(AIState.PATROL)}
 }

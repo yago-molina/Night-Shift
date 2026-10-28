@@ -1,6 +1,7 @@
+import {DOCUMENTS} from './StoryContent.js';
 import * as THREE from 'three';
 const cube=(parent,x,y,z,w,h,d,mat)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);o.position.set(x,y,z);parent.add(o);return o};
-export function populateInteractables(hospital,interaction,player,inventory,onMessage,onNoise=()=>{}){
+export function populateInteractables(hospital,interaction,player,inventory,onMessage,onNoise=()=>{},campaignRandom=null){
  const {scene,m,collision}=hospital;
  const result={doors:[],hideSpots:[]};
  const doors=[[-11,-2],[-3,-2],[5,-2],[12,-2],[-11,2],[-3,2],[5,2],[12,2]];
@@ -38,24 +39,44 @@ export function populateInteractables(hospital,interaction,player,inventory,onMe
  pickup(-2,.99,-9.3,{id:'battery-01',type:'battery',name:'Bateria reserva'},0x87c6b3);
  pickup(-12,1.05,-9,{id:'battery-02',type:'battery',name:'Bateria reserva'},0x87c6b3);
  pickup(5,.98,8,{id:'battery-03',type:'battery',name:'Bateria reserva'},0x87c6b3);
- function drawer(x,z){
+ function drawer(x,z,id){
   const frame=new THREE.Group();frame.position.set(x,.63,z);scene.add(frame);
   cube(frame,0,0,0,.75,.35,.55,m.wood);
-  const front=cube(frame,0,0,.3,.72,.3,.05,m.trim);
-  cube(frame,0,0,.345,.18,.05,.045,m.metal);
+  const tray=new THREE.Group();tray.position.z=.28;frame.add(tray);
+  cube(tray,0,-.085,0,.66,.045,.48,m.wood);
+  for(const side of [-.30,.30])cube(tray,side,0,0,.04,.18,.48,m.wood);
+  cube(tray,0,0,.25,.72,.3,.05,m.trim);
+  cube(tray,0,0,.30,.18,.05,.045,m.metal);
   let opened=false;
-  interaction.register(frame,{kind:'drawer',label:()=> '[E] '+(opened?'Fechar':'Abrir')+' gaveta',action:()=>{opened=!opened;front.position.z=opened?.56:.3;onMessage(opened?'Gaveta aberta.':'Gaveta fechada.');onNoise(frame.position,6)}});
+  // Independent 50/50 roll for each drawer, stable for the current campaign seed.
+  const note=campaignRandom?.drawerHasNote(id)??(Math.random()<.5);
+  const paper=new THREE.Group();paper.position.set(x,.94,z+.93);paper.visible=false;scene.add(paper);
+  if(note){
+   cube(paper,0,0,0,.29,.018,.36,m.bed);
+   cube(paper,0,.012,-.07,.22,.004,.012,m.trim);
+   const doc=DOCUMENTS[{deskReception:'drawerA',deskOffice:'drawerB',deskSecurity:'drawerC',deskSurgery:'drawerD'}[id]];
+   interaction.register(paper,{kind:'document',document:doc,label:()=> '[E] Ler papel encontrado: '+doc.title});
+  }
+  interaction.register(frame,{kind:'drawer',label:()=> '[E] '+(opened?'Fechar':'Abrir')+' gaveta',action:()=>{
+   opened=!opened;tray.position.z=opened?.55:.28;
+   paper.visible=opened&&note;
+   onMessage(opened?(note?'Há um papel antigo dentro da gaveta.':'Gaveta vazia.'):'Gaveta fechada.');
+   onNoise(frame.position,4);
+  }});
  }
  // Gavetas posicionadas nas mesas; podem ser abertas e fechadas.
- drawer(-12,-8.95);drawer(12,-8.95);
+ drawer(-12,-8.95,'deskReception');drawer(12,-8.95,'deskOffice');drawer(-3,-8.95,'deskSecurity');drawer(11,10.55,'deskSurgery');
  const docs=[
-  {x:-3.8,z:-9.25,title:'Registro de ocorrência — 22:47',body:'O plantão anterior informou movimentação no corredor cirúrgico. Nenhum paciente consta no sistema. A chave da sala de segurança permanece sobre a mesa.'},
-  {x:-11.8,z:-8.9,title:'Relatório de manutenção',body:'As luzes do bloco sul oscilam desde o fechamento do hospital. A equipe recomenda desligar os circuitos, mas o disjuntor principal permanece inacessível.'},
-  {x:11.5,z:-8.9,title:'Memorando interno — Acesso restrito',body:'Funcionários estão proibidos de permanecer após as 23h. Se ouvir passos no corredor vazio, retorne imediatamente à sala de segurança.'},
-  {x:4.7,z:8.1,title:'Prontuário 013 — Relatório cirúrgico',body:'Documento confidencial. O paciente 013 nunca recebeu alta. As câmeras registraram uma transferência às 02:17, porém nenhum funcionário estava presente. Esta é a prova que faltava.'}
+  {x:-3.8,y:.985,z:-9.25,...DOCUMENTS.occurrence},
+  {x:-11.8,y:.985,z:-8.9,...DOCUMENTS.maintenance},
+  {x:11.5,y:.985,z:-8.9,...DOCUMENTS.office},
+  {x:-12,y:.85,z:7.05,...DOCUMENTS.ward},
+  {x:12.9,y:.985,z:-8.72,...DOCUMENTS.research},
+  {x:11,y:.995,z:10.75,...DOCUMENTS.surgery},
+  {x:-12.2,y:.99,z:-9.2,...DOCUMENTS.reception}
  ];
  for(const d of docs){
-  const g=new THREE.Group();g.position.set(d.x,.985,d.z);scene.add(g);
+  const g=new THREE.Group();g.position.set(d.x,d.y,d.z);scene.add(g);
   cube(g,0,0,0,.34,.025,.43,m.bed);cube(g,0,.015,-.09,.25,.005,.015,m.trim);
   interaction.register(g,{kind:'document',document:d,label:()=> '[E] Ler documento: '+d.title});
  }

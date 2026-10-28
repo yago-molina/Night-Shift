@@ -28,12 +28,19 @@ export class Hospital{
   this.cabinet(-5.7,-11.5);this.desk(-12,-9);this.cabinet(-14,-11);this.desk(12,-9);
   this.cabinet(14,-11);this.cabinet(5,-11);
   for(const [x,z] of [[-12,6.7],[-9,9.7],[-3,8],[5,8]])this.bed(x,z);
-  this.cart(12,8);this.cart(-5,10);this.cart(4,5);
+  this.cart(13.9,6.1);this.cart(-5,10);this.cart(4,5);
   this.box(11,.9,11,1.5,.15,.7,this.m.metal,true);
+  // Relocated surgical wing: the north-east room has an operating table and instruments.
+  this.box(12,.68,8,1.45,.20,2.4,this.m.metal,true);
+  this.box(12,.83,8,1.28,.14,2.23,this.m.bed);
+  this.box(12,1,7.2,1.05,.10,.4,this.m.fabric);
+  this.box(14.25,1,9,.65,1.9,.55,this.m.metal,true);
+  this.box(11.2,1.35,10.8,.36,.62,.22,this.m.screen);
   for(let x=-15;x<=15;x+=2){this.box(x,.012,0,.85,.014,.064,this.m.pipe)}
   for(const x of [-12,-4,4,12])for(const z of [-8,0,8])this.fixture(x,z);
   for(const [x,z] of [[-15,-10],[-6,11],[15,5],[9,-10]])this.pipe(x,z);
   for(const [x,z] of [[-14,3.5],[-1,11],[8,-4]])this.stain(x,z,.9,.4);
   this.sign('RECEPÇÃO',-11,-2.17);this.sign('SEGURANÇA',-3,-2.17);this.sign('ADMINISTRAÇÃO',12,-2.17);
+  this.sign('ENFERMARIA / GERADOR',-11,2.17);this.sign('CIRURGIA',12,2.17);
  }
 }

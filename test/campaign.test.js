@@ -9,11 +9,12 @@ test('relógio cruza meia-noite e chega às seis',()=>{
 });
 test('objetivos só avançam conforme ações encadeadas',()=>{
  const m=new MissionSystem();m.action('evidence');m.action('cctv');assert.equal(m.stage,0);
- m.action('key');assert.equal(m.stage,1);m.action('incident');assert.equal(m.stage,4);
- m.action('returned');assert.equal(m.stage,5);
+ m.action('key');assert.equal(m.stage,1);m.action('incident');assert.equal(m.stage,3);
+ m.action('returned');assert.equal(m.stage,3);
+ m.action('generator');m.action('ward');m.action('research');assert.equal(m.stage,8);
 });
 test('relatórios, CCTV e retorno liberam final verdadeiro depois das cinco e meia',()=>{
- const m=new MissionSystem();for(const action of ['key','incident','cctv','evidence','returned'])m.action(action);
+ const m=new MissionSystem();for(const action of ['key','incident','cctv','generator','ward','research','evidence','returned'])m.action(action);
  assert.equal(m.canExtract(),false);m.update(390*SECONDS_PER_MINUTE);
  assert.equal(m.canExtract(),true);assert.equal(m.complete('terminal').kind,'truth');
 });
