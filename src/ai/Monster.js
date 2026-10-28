@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import {AIState,StateMachine} from './StateMachine.js';
 import {Navigation} from './Navigation.js';
-import {createCreatureModel} from '../models/CreatureModel.js';
 const V=(x,z)=>new THREE.Vector3(x,0,z);
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 export class Monster{
@@ -9,6 +8,7 @@ export class Monster{
   this.scene=scene;this.collision=collision;this.player=player;this.doors=doors;this.onAttack=onAttack;
   this.position=V(13,0,9);this.home=this.position.clone();this.lastKnown=null;
   this.navigation=new Navigation(collision);this.machine=new StateMachine(AIState.PATROL,onState);
+  this.navigation.blockedArea=point=>this.state!==AIState.CHASE && point.x>-6.7 && point.x<.7 && point.z< -2.25;
   this.path=[];this.pathTime=0;this.target=null;this.listenTimer=0;this.lostTime=0;this.searchTime=0;this.scanTime=0;
   this.facing=new THREE.Vector3(0,0,-1);this.suspicion=new Map();
   this.patrol=[V(13,9),V(12,0),V(5,0),V(-3,0),V(-11,0),V(-11,9),V(-3,9),V(5,9),V(13,9)];
@@ -16,31 +16,25 @@ export class Monster{
   this.buildModel();
  }
  buildModel(){
-  const asset=createCreatureModel();this.creatureAsset=asset;this.model=asset.root;
-  this.scene.add(this.model);this.model.position.copy(this.position);
- }
- isOnPlannedRoute(door){
-  if(door.isOpen)return false;
-  if(door.secure&&this.state!==AIState.CHASE)return false;
-  const near=dist(this.position,door.position);
-  if(near>1.55||!this.path.length)return false;
-  // A door opens only when the NEXT route segments actually pass through its frame.
-  let previous=this.position;
-  for(const node of this.path.slice(0,12)){
-   if(dist(this.position,node)>3.25)break;
-   const a=previous.z-door.position.z,b=node.z-door.position.z;
-   const crossing=(a<=0&&b>=0)||(a>=0&&b<=0);
-   if(crossing&&Math.min(Math.abs(a),Math.abs(b))<1.15){
-    const denominator=Math.abs(node.z-previous.z);
-    const k=denominator<.001?0:Math.abs(a)/denominator;
-    const crossingX=previous.x+(node.x-previous.x)*k;
-    if(Math.abs(crossingX-door.position.x)<.76)return true;
-   }
-   previous=node;
+  const root=new THREE.Group();this.model=root;this.scene.add(root);
+  const skin=new THREE.MeshStandardMaterial({color:0x394044,roughness:.94});
+  const coat=new THREE.MeshStandardMaterial({color:0x202b30,roughness:1});
+  const eye=new THREE.MeshStandardMaterial({color:0xc25746,emissive:0xc52c19,emissiveIntensity:1.7});
+  const make=(parent,r,h,y,material,x=0,z=0)=>{
+   const mesh=new THREE.Mesh(new THREE.CylinderGeometry(r*.78,r,h,9),material);
+   mesh.position.set(x,y,z);parent.add(mesh);return mesh;
+  };
+  make(root,.39,1.42,1.25,coat);
+  make(root,.19,.43,2.12,skin);
+  const head=new THREE.Mesh(new THREE.SphereGeometry(.24,10,8),skin);head.scale.set(.9,1.2,.83);head.position.y=2.43;root.add(head);
+  for(const side of [-1,1]){
+   const arm=make(root,.095,1.18,1.26,skin,side*.48);arm.rotation.z=side*.16;
+   const leg=make(root,.14,1.13,.51,coat,side*.2);this['leg'+side]=leg;
+   const e=new THREE.Mesh(new THREE.SphereGeometry(.048,8,6),eye);e.position.set(side*.09,2.46,-.206);root.add(e);
   }
-  return false;
+  this.shadow=new THREE.Mesh(new THREE.CircleGeometry(.48,16),new THREE.MeshBasicMaterial({color:0x090c0e,transparent:true,opacity:.35,depthWrite:false}));this.shadow.rotation.x=-Math.PI/2;this.shadow.position.y=.012;root.add(this.shadow);
+  this.model.position.copy(this.position);
  }
-
  get state(){return this.machine.state}
  setState(s){this.machine.set(s);this.path=[];this.pathTime=0;if(s===AIState.SEARCH){this.searchTime=0;this.scanTime=0}}
  remember(pos){this.lastKnown=V(pos.x,pos.z)}
@@ -73,8 +67,27 @@ export class Monster{
   while(this.path.length&&dist(this.position,this.path[0])<.34)this.path.shift();
   return this.path[0]||point;
  }
+ // Open a door only if upcoming A* waypoints actually cross its threshold.
+ isDoorOnRoute(door){
+  if(door.isOpen||dist(this.position,door.position)>1.55)return false;
+  if(door.secure&&this.state!==AIState.CHASE)return false;
+  let previous=this.position;
+  for(const next of this.path.slice(0,10)){
+   if(dist(this.position,next)>3.1)break;
+   const dz=next.z-previous.z;
+   if(Math.abs(dz)>1e-5){
+    const t=(door.position.z-previous.z)/dz;
+    if(t>=0&&t<=1){
+     const atX=previous.x+(next.x-previous.x)*t;
+     if(Math.abs(atX-door.position.x)<.7)return true;
+    }
+   }
+   previous=next;
+  }
+  return false;
+ }
  moveToward(point,speed,dt){
-  for(const door of this.doors){if(this.isOnPlannedRoute(door))door.openByMonster()}
+  for(const door of this.doors){if(this.isDoorOnRoute(door))door.openByMonster()}
   const d=dist(this.position,point);if(d<.08)return;
   const dx=(point.x-this.position.x)/d,dz=(point.z-this.position.z)/d;
   const step=Math.min(speed*dt,d);
@@ -108,6 +121,15 @@ export class Monster{
   else if(this.state===AIState.CHASE){this.lostTime+=dt;if(this.lostTime>2.2){this.setState(AIState.SEARCH)}}
   this.listenTimer-=dt;
   if(this.listenTimer<=0){this.listenTimer=.4;if(!sees&&this.hearsPlayer(status)){this.investigate(this.player.position)}}
+  // Once a chase ends inside security, leave it without searching/patrolling there.
+  if(this.state!==AIState.CHASE&&this.position.x>-6.7&&this.position.x<.7&&this.position.z< -2.15){
+   this.navigation.blockedArea=()=>false;
+   const exit=V(-3,-.95);
+   this.moveToward(this.routeTo(exit,dt),1.8,dt);
+   this.model.position.copy(this.position);
+   if(this.position.z>=-2.05){this.navigation.blockedArea=p=>this.state!==AIState.CHASE&&p.x>-6.7&&p.x<.7&&p.z< -2.25;this.setState(AIState.RETURN)}
+   return;
+  }
   const s=this.state;
   if(s===AIState.PATROL||s===AIState.RETURN){
    this.choosePatrol();this.moveToward(this.routeTo(this.patrol[this.patrolIndex],dt),s===AIState.PATROL?1.28:1.6,dt);
@@ -128,7 +150,7 @@ export class Monster{
   }
   this.model.position.copy(this.position);
   this.model.position.y=Math.abs(Math.sin(this.step))*.023;
-  this.creatureAsset.animate(this.step);
+  this['leg-1'].rotation.x=Math.sin(this.step)*.14;this['leg1'].rotation.x=-Math.sin(this.step)*.14;
  }
  reset(){this.position.copy(this.home);this.model.position.copy(this.home);this.active=false;this.elapsed=0;this.lastKnown=null;this.setState(AIState.PATROL)}
 }

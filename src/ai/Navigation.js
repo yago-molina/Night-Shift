@@ -1,13 +1,13 @@
 // A* grid navigation. Door colliders are ignored only for planning; the creature opens them physically when nearby.
 export class Navigation{
  constructor(collision,{cell=.65,minX=-15.6,maxX=15.6,minZ=-12.6,maxZ=12.6}={}){
-  this.collision=collision;this.cell=cell;this.minX=minX;this.minZ=minZ;
+  this.collision=collision;this.blockedArea=()=>false;this.cell=cell;this.minX=minX;this.minZ=minZ;
   this.cols=Math.floor((maxX-minX)/cell)+1;this.rows=Math.floor((maxZ-minZ)/cell)+1;
  }
  index(x,z){return z*this.cols+x}
  cellFor(p){return {x:Math.max(0,Math.min(this.cols-1,Math.round((p.x-this.minX)/this.cell))),z:Math.max(0,Math.min(this.rows-1,Math.round((p.z-this.minZ)/this.cell)))}}
  point(x,z){return {x:this.minX+x*this.cell,z:this.minZ+z*this.cell}}
- free(x,z){if(x<0||z<0||x>=this.cols||z>=this.rows)return false;const p=this.point(x,z);return !this.collision.blocked(p.x,p.z,.29,true)}
+ free(x,z){if(x<0||z<0||x>=this.cols||z>=this.rows)return false;const p=this.point(x,z);return !this.blockedArea(p)&&!this.collision.blocked(p.x,p.z,.29,true)}
  findFree(cell){if(this.free(cell.x,cell.z))return cell;for(let r=1;r<=5;r++)for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++){if(Math.max(Math.abs(dx),Math.abs(dz))!==r)continue;const x=cell.x+dx,z=cell.z+dz;if(this.free(x,z))return {x,z}}return null}
  path(from,to){
   const start=this.findFree(this.cellFor(from)),end=this.findFree(this.cellFor(to));

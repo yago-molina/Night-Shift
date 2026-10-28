@@ -25,9 +25,6 @@ import {SaveSystem} from '../systems/SaveSystem.js';
 import {EndingUI} from '../ui/EndingUI.js';
 import {GraphicsSettings} from './GraphicsSettings.js';
 import {PerformanceUI} from '../ui/PerformanceUI.js';
-import {makeTerminal} from '../models/HospitalProps.js';
-import {ObjectiveMarkers} from '../models/ObjectiveMarkers.js';
-import {showGameError} from './RuntimeRecovery.js';
 export class Game{
  constructor(root){
   this.running=false;this.elapsed=0;this.overlay=null;this.settings=new GraphicsSettings();
@@ -54,8 +51,6 @@ export class Game{
   });
   this.monster=new Monster(this.scene,this.hospital.collision,this.player,worldItems.doors,{onAttack:()=>this.onCaught(),onState:(next)=>{if(next==='CHASE')this.hud.message('Você ouviu passos acelerando atrás de você...')}});
   this.hideSpots=worldItems.hideSpots;
-  this.worldItems=worldItems;
-  this.objectiveMarkers=new ObjectiveMarkers(this.scene);
   this.gameOverUI=new GameOverUI(root,()=>window.location.reload());
   this.debugUI=new AIDebugUI(root);
   this.post=new PostProcessing(this.renderer,this.scene,this.camera);
@@ -99,7 +94,7 @@ export class Game{
   };
   window.addEventListener('resize',()=>{this.camera.aspect=innerWidth/innerHeight;this.camera.updateProjectionMatrix();this.renderer.setSize(innerWidth,innerHeight);this.post.resize(innerWidth,innerHeight)});
   window.addEventListener('keydown',e=>{if(!this.overlay)return;if(['Escape','Tab','KeyE'].includes(e.code)){e.preventDefault();this.closeOverlay()}});
-  this.clock=new THREE.Clock();this.renderer.setAnimationLoop(()=>{try{this.update()}catch(error){this.renderer.setAnimationLoop(null);this.running=false;try{this.audio.pause()}catch{}showGameError(error)}});
+  this.clock=new THREE.Clock();this.renderer.setAnimationLoop(()=>this.update());
  }
  enterCCTV(){if(!this.cctv.enter())return;this.securityUI.show();this.hud.hide();this.input.clearPressed()}
  exitCCTV(){this.cctv.exit();this.securityUI.hide();this.hud.show();this.input.clearPressed()}
@@ -110,9 +105,9 @@ export class Game{
   if(event.minute===390)this.audio.effect('radio',null,null);
  }
  registerExtractionTerminal(){
-  const terminal=makeTerminal(this.hospital.m);
-  terminal.position.set(.73,1.02,-5.5);terminal.rotation.y=-Math.PI/2;this.scene.add(terminal);
-  this.interactions.register(terminal,{
+  const THREE_MESH=new THREE.Mesh(new THREE.BoxGeometry(.48,.3,.15),this.hospital.m.screen);
+  THREE_MESH.position.set(.76,1.45,-5.5);this.scene.add(THREE_MESH);
+  this.interactions.register(THREE_MESH,{
    label:()=>this.missions.canExtract()?'[E] Encerrar turno e sair do hospital':'[E] Terminal de saída — liberado às 05:30',
    action:()=>{
     if(!this.missions.canExtract()){this.hud.message(this.missions.stage<5?'Conclua os objetivos antes de sair.':'A saída só será liberada às 05:30.');return}
@@ -176,8 +171,6 @@ export class Game{
    const status=viewing?{running:false,crouch:false,moving:false,stamina:this.player.stamina}:this.player.update(dt);
    this.hospital.lighting.setPower(this.power.enabled('lights'));
    this.hospital.update(dt);
-   this.worldItems.update(dt);
-   this.objectiveMarkers.update(dt,this.missions);
    this.power.update(dt,{cctvActive:viewing});
    this.cctv.update(dt,Math.hypot(this.player.position.x+3,this.player.position.z+9.3)<3.5);
    if(viewing&&!this.cctv.active)this.exitCCTV();
@@ -215,7 +208,7 @@ export class Game{
    let hint=this.player.hidden?'[E] Sair do esconderijo':this.interactions.update();
    if(this.overlay==='gameover'){this.post.render(dt);return}
    if(this.input.pressed('KeyE')){
-    if(this.player.hidden){const id=this.player.hidingId;this.player.emerge();const locker=this.hospital.lockerModels.get(id);if(locker){locker.opening.target=1;locker.release=.65}this.hud.message('Você saiu do esconderijo.')}
+    if(this.player.hidden){this.player.emerge();this.hud.message('Você saiu do esconderijo.')}
     else this.interactions.interact()
    }
    if(this.input.pressed('KeyR')){
