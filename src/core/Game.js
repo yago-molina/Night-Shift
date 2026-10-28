@@ -27,6 +27,7 @@ import {GraphicsSettings} from './GraphicsSettings.js';
 import {PerformanceUI} from '../ui/PerformanceUI.js';
 import {makeTerminal} from '../models/HospitalProps.js';
 import {ObjectiveMarkers} from '../models/ObjectiveMarkers.js';
+import {showGameError} from './RuntimeRecovery.js';
 export class Game{
  constructor(root){
   this.running=false;this.elapsed=0;this.overlay=null;this.settings=new GraphicsSettings();
@@ -98,7 +99,7 @@ export class Game{
   };
   window.addEventListener('resize',()=>{this.camera.aspect=innerWidth/innerHeight;this.camera.updateProjectionMatrix();this.renderer.setSize(innerWidth,innerHeight);this.post.resize(innerWidth,innerHeight)});
   window.addEventListener('keydown',e=>{if(!this.overlay)return;if(['Escape','Tab','KeyE'].includes(e.code)){e.preventDefault();this.closeOverlay()}});
-  this.clock=new THREE.Clock();this.renderer.setAnimationLoop(()=>this.update());
+  this.clock=new THREE.Clock();this.renderer.setAnimationLoop(()=>{try{this.update()}catch(error){this.renderer.setAnimationLoop(null);this.running=false;try{this.audio.pause()}catch{}showGameError(error)}});
  }
  enterCCTV(){if(!this.cctv.enter())return;this.securityUI.show();this.hud.hide();this.input.clearPressed()}
  exitCCTV(){this.cctv.exit();this.securityUI.hide();this.hud.show();this.input.clearPressed()}

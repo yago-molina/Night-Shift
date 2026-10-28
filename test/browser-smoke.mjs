@@ -32,5 +32,16 @@ try{
  await page.locator('#performance-ui').waitFor({state:'visible',timeout:5000});
  assert.equal(errors.length,0,'Erros JavaScript no browser: '+errors.join(' | '));
  console.log('BROWSER SMOKE PASS: canvas, menu, input, HUD, F2 e sem exceções.');
+ // Continue through the monster activation window, which the previous smoke test did not cover.
+ await page.waitForTimeout(22000);
+ assert.equal(errors.length,0,'Erro após 22 segundos de partida: '+errors.join(' | '));
+ assert.equal(await page.locator('#night-shift-recovery').count(),0,'Tela de recuperação apareceu durante partida');
  await page.screenshot({path:'browser-smoke.png'});
+ const safePage=await browser.newPage({viewport:{width:1000,height:650}});
+ safePage.on('pageerror',error=>errors.push(error.stack||error.message));
+ await safePage.goto('http://127.0.0.1:'+port+'/?safe=1',{waitUntil:'networkidle'});
+ assert.ok(await safePage.locator('#play').isVisible(),'Menu no modo seguro não apareceu');
+ assert.equal(await safePage.locator('#quality').inputValue(),'low','Modo seguro não selecionou qualidade baixa');
+ assert.equal(errors.length,0,'Erros no modo seguro: '+errors.join(' | '));
+ await safePage.close();
 }finally{await browser?.close();server.kill('SIGTERM')}
