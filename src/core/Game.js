@@ -27,6 +27,7 @@ import {GraphicsSettings} from './GraphicsSettings.js';
 import {PerformanceUI} from '../ui/PerformanceUI.js';
 import {CampaignRandom} from '../systems/CampaignRandom.js';
 import {RaidSystem} from '../systems/RaidSystem.js';
+import {HidingPressure} from '../systems/HidingPressure.js';
 export class Game{
  constructor(root){
   this.running=false;this.elapsed=0;this.overlay=null;this.settings=new GraphicsSettings();
@@ -55,6 +56,7 @@ export class Game{
   },this.campaignRandom);
   this.monster=new Monster(this.scene,this.hospital.collision,this.player,worldItems.doors,{onAttack:()=>this.onCaught(),onState:(next)=>{if(next==='CHASE')this.hud.message('Você ouviu passos acelerando atrás de você...')}});
   this.hideSpots=worldItems.hideSpots;
+  this.hidingPressure=new HidingPressure();
   this.gameOverUI=new GameOverUI(root,()=>window.location.reload());
   this.debugUI=new AIDebugUI(root);
   this.post=new PostProcessing(this.renderer,this.scene,this.camera);
@@ -127,7 +129,7 @@ export class Game{
  }
  saveCheckpoint(reason){
   if(!this.missions||this.missions.finished)return;
-  const data={version:1,seed:this.campaignRandom.seed,raid:this.raid.snapshot(),missions:this.missions.snapshot(),player:{x:this.player.position.x,z:this.player.position.z,battery:this.player.battery,stamina:this.player.stamina},inventory:this.inventory.getAll(),power:{energy:this.power.energy,outage:this.power.outage,circuits:{...this.power.circuits}},reason};
+  const data={version:1,seed:this.campaignRandom.seed,raid:this.raid.snapshot(),hidingPressure:this.hidingPressure.snapshot(),missions:this.missions.snapshot(),player:{x:this.player.position.x,z:this.player.position.z,battery:this.player.battery,stamina:this.player.stamina},inventory:this.inventory.getAll(),power:{energy:this.power.energy,outage:this.power.outage,circuits:{...this.power.circuits}},reason};
   this.saveSystem.save(data);
  }
  restoreCheckpoint(){
@@ -150,6 +152,7 @@ export class Game{
    this.power.outage=Boolean(data.power.outage)||this.power.energy===0;
    this.power.circuits={...this.power.circuits,...data.power.circuits};
   }
+  this.hidingPressure.restore(data.hidingPressure);
   this.monster.reset();this.raid.restore(data.raid);
   if(this.raid.active)this.monster.startRaid();
   this.hud.message('Checkpoint restaurado: '+this.missions.clock);
@@ -187,6 +190,7 @@ export class Game{
    this.cctv.update(dt,Math.hypot(this.player.position.x+3,this.player.position.z+9.3)<3.5);
    if(viewing&&!this.cctv.active)this.exitCCTV();
    this.monster.setProgress({minutes:this.missions.minutes,stage:this.missions.stage});
+   this.monster.setHidingPressure(this.hidingPressure.update(dt,this.player.hidden));
    this.raid.update(dt,this.missions.minutes);
    this.monster.update(dt,status,this.hideSpots);
    if(this.missions.finished){this.post.render(dt);return}

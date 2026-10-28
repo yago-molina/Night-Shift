@@ -14,7 +14,7 @@ export class Monster{
   this.patrol=[V(13,9),V(12,0),V(5,0),V(-3,0),V(-11,0),V(-11,9),V(-3,9),V(5,9),V(13,9)];
   this.patrolIndex=0;this.step=0;this.elapsed=0;this.grace=20;this.active=false;
   this.hearingCooldown=0;this.securityCooldown=0;this.searchTime=0;this.recoveryTime=0;
-  this.aggression=0;this.progressMinutes=0;this.progressStage=0;this.securityRaid=false;
+  this.aggression=0;this.baseAggression=0;this.hidingPressure=0;this.progressMinutes=0;this.progressStage=0;this.securityRaid=false;
   this.buildModel();
  }
  buildModel(){
@@ -45,8 +45,11 @@ export class Monster{
   this.progressMinutes=Math.max(0,Math.min(420,Number(minutes)||0));
   this.progressStage=Math.max(0,Math.min(8,Number(stage)||0));
   // Difficulty rises progressively through the night and through completed objectives.
-  this.aggression=Math.min(1,this.progressMinutes/420*.65+this.progressStage/8*.35);
+  this.baseAggression=Math.min(1,this.progressMinutes/420*.65+this.progressStage/8*.35);
+  this.applyAggression();
  }
+ setHidingPressure(pressure){this.hidingPressure=Math.max(0,Math.min(1,Number(pressure)||0));this.applyAggression()}
+ applyAggression(){this.aggression=Math.min(1,this.baseAggression+this.hidingPressure*.26)}
  get hearingRadii(){return {walk:3.4+this.aggression*1.8,run:6.2+this.aggression*2.8,crouch:1.05+this.aggression*.5}}
  get chaseSpeed(){return 3.45+this.aggression*.85}
  inSecurity(p){return p.x>-6.65&&p.x<.65&&p.z< -2.2&&p.z> -12.9}
@@ -154,7 +157,7 @@ export class Monster{
   for(const h of this.hideSpots||[]){const a=dist(h.position,this.lastKnown);if(a<d){best=h;d=a}}
   if(!best||d>3.1||dist(this.position,best.position)>2.25)return false;
   this.scanTime+=dt;
-  if(this.scanTime<2.2)return false;
+  if(this.scanTime<2.2-this.hidingPressure*.7)return false;
   const count=(this.suspicion.get(best.id)||0)+1;this.suspicion.set(best.id,count);
   this.scanTime=-5;
   if(this.player.hidden&&this.player.hidingId===best.id&&(count>=2||dist(this.lastKnown,best.position)<1.1)){this.attack();return true}
