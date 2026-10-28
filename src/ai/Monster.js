@@ -50,7 +50,7 @@ export class Monster{
  }
  setNightAnger(level){this.nightAnger=Math.max(0,Math.min(4,Number(level)||0));this.applyAggression()}
  setHidingPressure(pressure){this.hidingPressure=Math.max(0,Math.min(1,Number(pressure)||0));this.applyAggression()}
- applyAggression(){this.aggression=Math.min(1,this.baseAggression*.74+this.hidingPressure*.22+this.nightAnger*.105)}
+ applyAggression(){this.aggression=Math.min(1,this.baseAggression+this.hidingPressure*.22+this.nightAnger*.105)}
  get hearingRadii(){return {walk:3.4+this.aggression*1.8,run:6.2+this.aggression*2.8,crouch:1.05+this.aggression*.5}}
  get chaseSpeed(){return 3.45+this.aggression*.85}
  inSecurity(p){return p.x>-6.65&&p.x<.65&&p.z< -2.2&&p.z> -12.9}
